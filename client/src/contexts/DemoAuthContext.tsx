@@ -17,6 +17,7 @@ interface DemoAuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<DemoUser>) => Promise<{ error: string | null }>
+  setUser: (user: DemoUser | null) => void
 }
 
 const DemoAuthContext = createContext<DemoAuthContextType>({
@@ -25,7 +26,8 @@ const DemoAuthContext = createContext<DemoAuthContextType>({
   signUp: async () => ({ error: 'Demo mode' }),
   signIn: async () => ({ error: 'Demo mode' }),
   signOut: async () => {},
-  updateProfile: async () => ({ error: 'Demo mode' })
+  updateProfile: async () => ({ error: 'Demo mode' }),
+  setUser: () => {}
 })
 
 export const useDemoAuth = () => useContext(DemoAuthContext)
@@ -140,7 +142,8 @@ export const DemoAuthProvider: React.FC<{ children: ReactNode }> = ({ children }
     signUp,
     signIn,
     signOut,
-    updateProfile
+    updateProfile,
+    setUser
   }
 
   return (

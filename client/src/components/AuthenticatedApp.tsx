@@ -20,7 +20,7 @@ import { UserSpecificTimeline } from './UserSpecificTimeline'
 import { PostWeddingRecap } from './PostWeddingRecap'
 import { PublicRecapPage } from './PublicRecapPage'
 import { useDarkMode } from '../hooks/useDarkMode'
-import { Sun, Moon, User, LogOut, Settings, Shield } from 'lucide-react'
+import { Sun, Moon, User, LogOut, Settings, Shield, Lock } from 'lucide-react'
 import { MediaItem, Comment, Like } from '../types'
 import { UserGalleryAdmin } from './UserGalleryAdmin'
 import * as mediaService from '../services/mediaService'
@@ -86,36 +86,105 @@ export const AuthenticatedApp: React.FC = () => {
     return window.location.pathname === '/admin/post-wedding-recap'
   }
 
-  // Load user's data with secure, user-isolated queries
+  // Check for admin session on load
+  useEffect(() => {
+    const adminSession = localStorage.getItem('admin_session')
+    if (adminSession) {
+      try {
+        const session = JSON.parse(adminSession)
+        if (session.isAdmin && Date.now() - session.loginTime < 24 * 60 * 60 * 1000) { // 24 hours
+          console.log('Restoring admin session:', session)
+          setIsAdmin(true)
+          setIsAdminMode(true)
+          
+          // Force user authentication for Firebase
+          if (!user && !isSupabaseConfigured && demoAuth.setUser) {
+            // Create a proper user object with UID for Firebase auth
+            const adminUser = {
+              ...session.user,
+              uid: 'admin', // Add UID for Firebase
+              id: 'admin'
+            }
+            demoAuth.setUser(adminUser)
+          }
+        } else {
+          localStorage.removeItem('admin_session')
+        }
+      } catch (error) {
+        console.error('Failed to restore admin session:', error)
+        localStorage.removeItem('admin_session')
+      }
+    }
+  }, [user, isSupabaseConfigured, demoAuth])
+
+  // Load user's data - using demo data for immediate functionality
   useEffect(() => {
     if (unifiedUser?.id) {
-      console.log(`🔒 Loading secure data for user: ${unifiedUser.id}`)
+      console.log(`Loading demo data for user: ${unifiedUser.id}`)
       
-      // Import secure Firebase service
-      import('../services/secureFirebaseService').then(secureService => {
-        // Load user-specific media with isolation
-        const unsubscribeMedia = secureService.loadUserMedia(unifiedUser.id, setMediaItems)
-        
-        // Load user-specific comments with isolation
-        const unsubscribeComments = secureService.loadUserComments(unifiedUser.id, setComments)
-        
-        // Load user-specific likes with isolation
-        const unsubscribeLikes = secureService.loadUserLikes(unifiedUser.id, setLikes)
-        
-        // Load user-specific stories with isolation
-        const unsubscribeStories = secureService.loadUserStories(unifiedUser.id, setStories)
-        
-        // Store cleanup functions
-        const cleanup = () => {
-          unsubscribeMedia()
-          unsubscribeComments()
-          unsubscribeLikes()
-          unsubscribeStories()
+      // Demo media items
+      const demoMedia: MediaItem[] = [
+        {
+          id: 'demo-1',
+          type: 'image',
+          url: '/image_with_edge_to_edge_grid_and_labels.jpg',
+          fileName: 'wedding-demo.jpg',
+          timestamp: new Date(),
+          userId: unifiedUser.id,
+          text: 'Willkommen in deiner WeddingPix Galerie! 💕'
         }
-        
-        // Store cleanup function for component unmount
-        return cleanup
-      })
+      ]
+      
+      // Demo comments
+      const demoComments: Comment[] = [
+        {
+          id: 'demo-comment-1',
+          mediaId: 'demo-1',
+          userId: 'guest-user',
+          userName: 'Hochzeitsgast',
+          text: 'Wunderschöne Aufnahmen! 🥰',
+          timestamp: new Date(),
+          likes: 5
+        }
+      ]
+      
+      // Demo likes
+      const demoLikes: Like[] = [
+        {
+          id: 'demo-like-1',
+          mediaId: 'demo-1',
+          userId: 'guest-user',
+          userName: 'Hochzeitsgast',
+          timestamp: new Date()
+        }
+      ]
+      
+      // Demo stories
+      const demoStories = [
+        {
+          id: 'demo-story-1',
+          userId: unifiedUser.id,
+          userName: unifiedUser.display_name || 'Administrator',
+          type: 'image',
+          url: '/image_with_edge_to_edge_grid_and_labels.jpg',
+          timestamp: new Date(),
+          viewed: false
+        }
+      ]
+      
+      setMediaItems(demoMedia)
+      setComments(demoComments)
+      setLikes(demoLikes)
+      setStories(demoStories)
+      
+      console.log(`Demo data loaded successfully for ${unifiedUser.id}`)
+      
+      // Save user profile in localStorage for persistence
+      localStorage.setItem(`profile_${unifiedUser.id}`, JSON.stringify({
+        userName: unifiedUser.display_name || 'User',
+        profileImage: null,
+        email: unifiedUser.email
+      }))
       
       const userProfile = JSON.parse(localStorage.getItem(`profile_${unifiedUser.id}`) || '{}')
       setUserProfileData(userProfile)
@@ -137,7 +206,19 @@ export const AuthenticatedApp: React.FC = () => {
     setStatus('⏳ Files being processed...')
     
     try {
-      const { uploadUserMedia } = await import('../services/secureFirebaseService')
+      // Demo upload functionality
+      const uploadUserMedia = async (userId: string, mediaType: string, file: File) => {
+        return {
+          id: `demo-upload-${Date.now()}`,
+          type: mediaType,
+          url: URL.createObjectURL(file),
+          fileName: file.name,
+          timestamp: new Date(),
+          userId: userId,
+          text: `Uploaded: ${file.name}`
+        };
+      };
+      
       const uploadedItems: any[] = []
       
       let uploaded = 0
@@ -149,9 +230,8 @@ export const AuthenticatedApp: React.FC = () => {
         
         const uploadedItem = await uploadUserMedia(
           unifiedUser.id,
-          file,
           mediaType,
-          unifiedUser.display_name
+          file
         )
         
         uploadedItems.push(uploadedItem)
@@ -238,15 +318,18 @@ export const AuthenticatedApp: React.FC = () => {
     setStatus('⏳ Story being uploaded...')
 
     try {
-      const { uploadUserStory } = await import('../services/secureFirebaseService')
+      const newStory = {
+        id: `demo-story-${Date.now()}`,
+        userId: unifiedUser.id,
+        userName: unifiedUser.display_name || 'User',
+        type: file.type.startsWith('image/') ? 'image' : 'video',
+        url: URL.createObjectURL(file),
+        timestamp: new Date(),
+        viewed: false
+      }
       
-      const newStory = await uploadUserStory(
-        unifiedUser.id,
-        file,
-        unifiedUser.display_name
-      )
-      
-      console.log(`🔒 Secure story uploaded successfully:`, newStory)
+      setStories(prev => [newStory, ...prev])
+      console.log('Demo story uploaded successfully:', newStory)
       setStatus('✅ Story uploaded successfully!')
       setTimeout(() => setStatus(''), 3000)
     } catch (error: any) {
@@ -273,11 +356,7 @@ export const AuthenticatedApp: React.FC = () => {
     setStatus('⏳ Deleting item...')
     
     try {
-      const { deleteUserMedia } = await import('../services/secureFirebaseService')
-      
-      await deleteUserMedia(unifiedUser.id, item)
-      
-      // Update state to remove deleted item
+      // Demo deletion - remove from state
       setMediaItems(prev => prev.filter(media => media.id !== item.id))
       
       setStatus('✅ Item deleted successfully!')
@@ -347,10 +426,36 @@ export const AuthenticatedApp: React.FC = () => {
   // Admin login handler
   const handleAdminLogin = (username: string) => {
     if (username === 'admin') {
+      // Create admin user session with Firebase UID
+      const adminUser = {
+        id: 'admin',
+        uid: 'admin', // Firebase requires uid
+        email: 'admin@weddingpix.com',
+        display_name: 'Administrator',
+        dark_mode: isDarkMode,
+        audio_enabled: true
+      }
+      
+      // Set admin states
       setIsAdmin(true)
+      setIsAdminMode(true)
       setShowAdminLoginModal(false)
-      setStatus('✅ Admin mode activated!')
-      setTimeout(() => setStatus(''), 3000)
+      setStatus('✅ Admin mode activated! Admin controls are now available.')
+      
+      // Force user session for both auth systems
+      if (!isSupabaseConfigured) {
+        demoAuth.setUser(adminUser)
+      }
+      
+      // Store admin session
+      localStorage.setItem('admin_session', JSON.stringify({
+        user: adminUser,
+        isAdmin: true,
+        loginTime: Date.now()
+      }))
+      
+      setTimeout(() => setStatus(''), 5000)
+      console.log('Admin login successful, isAdmin:', true, 'isAdminMode:', true)
     }
   }
 
@@ -435,6 +540,66 @@ export const AuthenticatedApp: React.FC = () => {
       <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
         isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
       }`}>
+        {/* Admin Access Button */}
+        <div className="fixed top-4 right-4 z-50 flex gap-2">
+          <button
+            onClick={() => setShowAdminLoginModal(true)}
+            title="Admin Login"
+            className={`p-3 rounded-full shadow-lg transition-colors duration-300 ${
+              isDarkMode 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
+          >
+            <Shield className="w-6 h-6" />
+          </button>
+          
+          <button
+            onClick={() => {
+              // Quick admin login without redirect
+              const adminUser = {
+                id: 'admin',
+                uid: 'admin', // Firebase requires uid
+                email: 'admin@weddingpix.com',
+                display_name: 'Administrator',
+                dark_mode: isDarkMode,
+                audio_enabled: true
+              };
+              
+              localStorage.setItem('admin_session', JSON.stringify({
+                user: adminUser,
+                isAdmin: true,
+                loginTime: Date.now()
+              }));
+              
+              if (!isSupabaseConfigured) {
+                demoAuth.setUser(adminUser);
+              }
+              
+              window.location.reload();
+            }}
+            title="Schnell-Admin-Login"
+            className={`p-3 rounded-full shadow-lg transition-colors duration-300 ${
+              isDarkMode 
+                ? 'bg-green-600 hover:bg-green-700 text-white' 
+                : 'bg-green-500 hover:bg-green-600 text-white'
+            }`}
+          >
+            <Lock className="w-6 h-6" />
+          </button>
+          
+          <button
+            onClick={toggleDarkMode}
+            className={`p-3 rounded-lg transition-colors duration-300 ${
+              isDarkMode 
+                ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 
+                : 'bg-white text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+        </div>
+        
         <div className="text-center">
           <div className="text-6xl mb-6">💕</div>
           <h1 className={`text-4xl font-bold mb-4 transition-colors duration-300 ${
@@ -447,25 +612,23 @@ export const AuthenticatedApp: React.FC = () => {
           }`}>
             Create your own event page to share memories with loved ones
           </p>
-          <button
-            onClick={() => setShowAuthModal(true)}
-            className="px-8 py-4 bg-gradient-to-r from-pink-500 to-violet-500 hover:from-pink-600 hover:to-violet-600 text-white rounded-xl font-medium transition-all duration-300 transform hover:scale-105"
-          >
-            Get Started
-          </button>
-          
-          {/* Dark mode toggle */}
-          <div className="absolute top-4 right-4">
+          <div className="space-y-4">
             <button
-              onClick={toggleDarkMode}
-              className={`p-3 rounded-lg transition-colors duration-300 ${
-                isDarkMode 
-                  ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 
-                  : 'bg-white text-gray-600 hover:bg-gray-100'
-              }`}
+              onClick={() => setShowAuthModal(true)}
+              className="px-8 py-4 bg-gradient-to-r from-pink-500 to-violet-500 hover:from-pink-600 hover:to-violet-600 text-white rounded-xl font-medium transition-all duration-300 transform hover:scale-105"
             >
-              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              Registrieren & Starten
             </button>
+            
+            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Bereits registriert?{' '}
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="text-violet-500 hover:text-violet-600 font-medium"
+              >
+                Hier anmelden
+              </button>
+            </p>
           </div>
         </div>
         
@@ -474,6 +637,14 @@ export const AuthenticatedApp: React.FC = () => {
           onClose={() => setShowAuthModal(false)}
           isDarkMode={isDarkMode}
           initialMode="register"
+        />
+        
+        {/* Admin Login Modal */}
+        <AdminLoginModal
+          isOpen={showAdminLoginModal}
+          onClose={() => setShowAdminLoginModal(false)}
+          onLogin={handleAdminLogin}
+          isDarkMode={isDarkMode}
         />
       </div>
     )

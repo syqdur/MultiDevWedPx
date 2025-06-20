@@ -25,6 +25,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const { setUser } = useDemoAuth()
   
   // Use the appropriate auth context based on configuration
   const supabaseAuth = useAuth()
@@ -57,23 +58,67 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           return
         }
 
-        const { error } = await signUp(email, password, displayName.trim())
-        if (error) {
-          setError(typeof error === 'string' ? error : (error as any)?.message || 'Authentication error')
-        } else {
-          // Registration successful - show success message
-          setError('')
-          onClose()
-          // You might want to show a "check your email" message here
+        // Create new user via API
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: email,
+            password,
+            displayName: displayName.trim(),
+            email
+          })
+        })
+
+        if (!response.ok) {
+          const data = await response.json()
+          throw new Error(data.message || 'Registration failed')
         }
+
+        const userData = await response.json()
+        
+        // Set user in demo auth context
+        setUser({
+          id: userData.id.toString(),
+          uid: userData.id.toString(),
+          email: userData.email,
+          display_name: userData.displayName
+        })
+
+        setError('')
+        onClose()
       } else {
-        const { error } = await signIn(email, password)
-        if (error) {
-          setError(typeof error === 'string' ? error : (error as any)?.message || 'Authentication error')
-        } else {
-          setError('')
-          onClose()
+        // Login existing user
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: email,
+            password
+          })
+        })
+
+        if (!response.ok) {
+          const data = await response.json()
+          throw new Error(data.message || 'Login failed')
         }
+
+        const userData = await response.json()
+        
+        // Set user in demo auth context
+        setUser({
+          id: userData.id.toString(),
+          uid: userData.id.toString(),
+          email: userData.email,
+          display_name: userData.displayName
+        })
+
+        setError('')
+        onClose()
       }
     } catch (err) {
       setError('An unexpected error occurred')

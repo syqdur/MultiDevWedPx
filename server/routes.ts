@@ -332,7 +332,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
+  // Auth routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { username, password, displayName, email } = req.body;
 
+      if (!username || !password || !displayName) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      const newUser = await storage.createUser({
+        username,
+        password,
+        displayName,
+        email: email || username
+      });
+
+      res.status(201).json({
+        id: newUser.id,
+        username: newUser.username,
+        displayName: newUser.displayName,
+        email: newUser.email,
+        message: "User registered successfully"
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+
+      const user = await storage.getUserByUsername(username);
+      if (!user || user.password !== password) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      res.json({
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        email: user.email,
+        message: "Login successful"
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  const httpServer = createServer(app);
   return httpServer;
 }

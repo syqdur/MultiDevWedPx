@@ -5,6 +5,7 @@ import { AuthenticatedApp } from './components/AuthenticatedApp';
 import { UserProfilePage } from './components/UserProfilePage';
 import { SpotifyCallback } from './components/SpotifyCallback';
 import { PublicRecapPage } from './components/PublicRecapPage';
+import { DirectAdminLogin } from './components/DirectAdminLogin';
 import { useDarkMode } from './hooks/useDarkMode';
 import { isSupabaseConfigured } from './config/supabase';
 
@@ -30,6 +31,11 @@ function App() {
     return userMatch ? userMatch[1] : null;
   };
 
+  // Check for direct admin login route
+  const isAdminRoute = () => {
+    return currentPath === '/admin' || currentPath === '/admin/login';
+  };
+
   // Handle special routes
   if (isSpotifyCallback()) {
     return <SpotifyCallback isDarkMode={isDarkMode} />;
@@ -37,6 +43,12 @@ function App() {
 
   if (isPublicRecap()) {
     return <PublicRecapPage isDarkMode={isDarkMode} />;
+  }
+
+  if (isAdminRoute()) {
+    return <DirectAdminLogin isDarkMode={isDarkMode} onAdminLogin={() => {
+      console.log('Admin login callback triggered');
+    }} />;
   }
 
   // Use Supabase auth if configured, otherwise fall back to demo auth

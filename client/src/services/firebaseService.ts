@@ -8,9 +8,10 @@ import {
 import { storage, isFirebaseConfigured } from '../config/firebase';
 import { MediaItem, Comment, Like } from '../types';
 
-// Helper function to get user-specific storage path
+// Helper function to get user-specific storage path (SECURE)
 const getUserStoragePath = (userUID: string, mediaType: 'images' | 'videos' | 'audio', fileName: string): string => {
-  return `galleries/${userUID}/${mediaType}/${fileName}`;
+  // Use secure user-isolated path structure
+  return `users/${userUID}/${mediaType}/${fileName}`;
 };
 
 // Helper function to determine media type from file
