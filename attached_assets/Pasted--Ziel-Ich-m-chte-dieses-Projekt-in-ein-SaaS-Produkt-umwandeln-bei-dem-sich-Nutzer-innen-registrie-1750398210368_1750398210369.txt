@@ -1,0 +1,133 @@
+🧠 Ziel
+Ich möchte dieses Projekt in ein SaaS-Produkt umwandeln, bei dem sich Nutzer:innen registrieren und ihre eigene Event-Page (ähnlich einer digitalen Hochzeitseinladung) gestalten können. Dafür soll die bestehende Codebasis erweitert und modularisiert werden.
+
+✅ Prompt für die KI
+Du bist ein erfahrener Fullstack-Entwickler. Ich habe bereits ein umfangreiches React-Projekt aufgebaut, das aktuell als statische Event-Page dient.
+Jetzt möchte ich es zu einer geschäftsfähigen Multi-User-Web-App umbauen:
+
+Jeder Nutzerin soll sich registrieren, einloggen und dann eine eigene Galerie, eigene Bio, Timeline, Musik-Wishlist etc. verwalten können – komplett getrennt von anderen Usern.
+
+📂 Die Komponenten befinden sich hier: /src/components/
+🔐 Auth & Benutzerverwaltung:
+AdminLoginModal.tsx & AdminPanel.tsx: aktueller Adminbereich mit Login, soll durch öffentliches User-System erweitert werden
+
+UserManagementModal.tsx: bisher zur Admin-Seitenverwaltung, bitte umbauen oder ergänzen für User-Registrierung & Auth
+
+LevelUserIndicator.tsx: wird für Rechte/Level verwendet – kann als Grundlage für User-Zugriffslogik dienen
+
+👤 Nutzerinhalte:
+ProfileHeader.tsx, UserNamePrompt.tsx: zeigt Namen, Profilbild, Dark/Audio-Mode – soll user-spezifisch gespeichert werden
+
+SpotifyAdmin.tsx, SpotifyCallback.tsx: Spotify-Anbindung (aktuell nur für Admin?) – auf User-Konten umstellen
+
+MusicWishlist.tsx: Musikvorschläge – pro User individualisierbar machen
+
+📸 Medien:
+MediaModal.tsx, UploadSection.tsx, VideoRecorder.tsx: Upload- und Galeriekomponenten – derzeit zentral, sollen pro Nutzer*innen separate Daten speichern
+
+InstagramGallery.tsx, InstagramPost.tsx: Integration mit Instagram – optional dynamisch pro User?
+
+🕓 Timeline & Stories:
+Timeline.tsx, TabNavigation.tsx: zeigt Timeline der Beziehung – aktuell statisch, bitte dynamisch pro User
+
+StoriesBar.tsx, StoriesViewer.tsx, StoryUploadModal.tsx: Stories (ähnlich Instagram) – derzeit global, soll userbasiert funktionieren
+
+📝 Sonstiges:
+NotePost.tsx, PostWeddingRecap.tsx, ShowcaseModal.tsx: Inhalte der Event-Seite – bitte prüfen, ob individualisiert werden müssen
+
+PublicRecapPage.tsx, UnderConstructionPage.tsx: öffentlich sichtbare Seiten – bitte so umbauen, dass sie user-spezifisch gerendert werden (via Public-ID/Slug o. ä.)
+
+🎯 Deine Aufgaben:
+Ein vollständiges Auth-System einbauen
+(empfohlen: Supabase oder Firebase) – mit Registrierung, Login, Logout, Passwort-Reset
+Optional: OAuth (Google/Spotify)
+
+Die bestehenden Komponenten dynamisieren:
+Ersetze alle statischen Inhalte durch Datenbankzugriffe, z. B.:
+
+Timeline-Einträge → aus DB laden (nur User-eigene)
+
+Galerie → Bilder/Video pro User
+
+Spotify → eigener Link pro User
+
+Profilinfos → name, bio, darkmode etc. aus DB
+
+Vorgeschlagene Datenstruktur in Supabase:
+
+sql
+Kopieren
+Bearbeiten
+users (
+  id UUID PRIMARY KEY,
+  email TEXT,
+  password TEXT,
+  display_name TEXT,
+  profile_image TEXT,
+  bio TEXT,
+  spotify_url TEXT,
+  dark_mode BOOLEAN,
+  audio_enabled BOOLEAN
+)
+
+gallery_media (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  url TEXT,
+  caption TEXT
+)
+
+timeline_items (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  title TEXT,
+  date TIMESTAMP,
+  description TEXT
+)
+
+music_wishlist (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  song_title TEXT,
+  artist TEXT
+)
+
+stories (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  media_url TEXT,
+  timestamp TIMESTAMP,
+  viewed_by JSONB
+)
+Komponenten modular umbauen:
+
+Verwende Zustand oder React Context für globalen User-Zustand
+
+Lade Daten abhängig vom eingeloggten Nutzer
+
+Sorge dafür, dass jeder Nutzerin nur eigene Daten sieht und bearbeiten kann
+
+Demo-Modus erhalten:
+Die aktuelle Hochzeitseinladung soll weiter als öffentliches Beispiel funktionieren (z. B. über festen Demo-Account oder ?demo=true Query-Param)
+
+🧩 Techstack (bereits vorhanden):
+React + TypeScript
+
+Tailwind CSS
+
+Firebase (bereits initialisiert – firebase.json & firebaseConfig.ts vorhanden)
+
+Spotify-Integration (OAuth Callback bereits eingebaut)
+
+🛠 Bitte beginne mit:
+Analyse der AdminLoginModal.tsx und Umbau zu einer echten User-Auth mit Supabase
+
+Aufbau eines AuthContext.tsx zur zentralen Benutzersteuerung
+
+Umbau von Timeline.tsx zur dynamischen Datenanbindung mit Supabase
+
+Wenn du mir Schritt für Schritt durch den Umbau helfen willst, gib mir zuerst den Auth-Context + Supabase-Setup – dann machen wir jede Komponente gemeinsam dynamisch.
+
+📎 Hinweis
+Wenn du mehr Dateien brauchst, sag mir Bescheid – ich kann weitere Screenshots oder Code-Snippets liefern!
+
