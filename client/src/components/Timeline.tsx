@@ -1,17 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Heart, Calendar, MapPin, Camera, Plus, Edit3, Trash2, Save, X, Image, Video, Upload } from 'lucide-react';
-import { 
-  collection, 
-  addDoc, 
-  query, 
-  orderBy, 
-  onSnapshot, 
-  deleteDoc, 
-  doc, 
-  updateDoc 
-} from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage } from '../config/firebase';
+import { useAuth } from '../contexts/AuthContext';
+import { useDemoAuth } from '../contexts/DemoAuthContext';
+import { isSupabaseConfigured } from '../config/supabase';
 
 interface TimelineEvent {
   id: string;
@@ -46,6 +37,11 @@ const eventTypes = [
 ];
 
 export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmin }) => {
+  const supabaseAuth = useAuth();
+  const demoAuth = useDemoAuth();
+  const auth = isSupabaseConfigured ? supabaseAuth : demoAuth;
+  const { user } = auth;
+  
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);

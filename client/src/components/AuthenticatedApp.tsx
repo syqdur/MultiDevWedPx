@@ -14,12 +14,13 @@ import { TabNavigation } from './TabNavigation'
 import { LiveUserIndicator } from './LiveUserIndicator'
 import { SpotifyCallback } from './SpotifyCallback'
 import { MusicWishlist } from './MusicWishlist'
-import { Timeline } from './Timeline'
+import { UserSpecificTimeline } from './UserSpecificTimeline'
 import { PostWeddingRecap } from './PostWeddingRecap'
 import { PublicRecapPage } from './PublicRecapPage'
 import { useDarkMode } from '../hooks/useDarkMode'
 import { Sun, Moon, User, LogOut, Settings } from 'lucide-react'
 import { MediaItem } from '../types'
+import { UserGalleryAdmin } from './UserGalleryAdmin'
 
 // Convert Supabase media to MediaItem format
 const convertSupabaseToMediaItem = (media: any): MediaItem => ({
@@ -63,6 +64,8 @@ export const AuthenticatedApp: React.FC = () => {
   const [stories, setStories] = useState<any[]>([])
   const [comments, setComments] = useState<any[]>([])
   const [likes, setLikes] = useState<any[]>([])
+  const [userProfileData, setUserProfileData] = useState<any>(null)
+  const [isAdminMode, setIsAdminMode] = useState(false)
 
   // Check if we're on special routes
   const isSpotifyCallback = () => {
@@ -78,11 +81,14 @@ export const AuthenticatedApp: React.FC = () => {
     return window.location.pathname === '/admin/post-wedding-recap'
   }
 
-  // Load user's media from localStorage on component mount
+  // Load user's media and profile data from localStorage on component mount
   useEffect(() => {
     if (unifiedUser) {
       const userMedia = JSON.parse(localStorage.getItem(`media_${unifiedUser.id}`) || '[]')
       setMediaItems(userMedia)
+      
+      const userProfile = JSON.parse(localStorage.getItem(`profile_${unifiedUser.id}`) || '{}')
+      setUserProfileData(userProfile)
     }
   }, [unifiedUser])
 
@@ -267,6 +273,111 @@ export const AuthenticatedApp: React.FC = () => {
     setShowAuthModal(false)
   }
 
+  // Handle media deletion
+  const handleDeleteMedia = async (item: MediaItem) => {
+    if (!unifiedUser) return
+    
+    try {
+      // Remove from local storage
+      const userMedia = JSON.parse(localStorage.getItem(`media_${unifiedUser.id}`) || '[]')
+      const updatedMedia = userMedia.filter((media: MediaItem) => media.id !== item.id)
+      localStorage.setItem(`media_${unifiedUser.id}`, JSON.stringify(updatedMedia))
+      
+      // Update state
+      setMediaItems(prev => prev.filter(media => media.id !== item.id))
+      
+      setStatus('✅ Media deleted successfully!')
+      setTimeout(() => setStatus(''), 3000)
+    } catch (error) {
+      console.error('Media deletion error:', error)
+      setStatus('❌ Failed to delete media. Please try again.')
+      setTimeout(() => setStatus(''), 5000)
+    }
+  }
+
+  // Handle note editing
+  const handleEditNote = async (item: MediaItem, newText: string) => {
+    if (!unifiedUser) return
+    
+    try {
+      const userMedia = JSON.parse(localStorage.getItem(`media_${unifiedUser.id}`) || '[]')
+      const updatedMedia = userMedia.map((media: MediaItem) => 
+        media.id === item.id ? { ...media, noteText: newText } : media
+      )
+      localStorage.setItem(`media_${unifiedUser.id}`, JSON.stringify(updatedMedia))
+      
+      setMediaItems(prev => prev.map(media => 
+        media.id === item.id ? { ...media, noteText: newText } : media
+      ))
+      
+      setStatus('✅ Note updated successfully!')
+      setTimeout(() => setStatus(''), 3000)
+    } catch (error) {
+      console.error('Note edit error:', error)
+      setStatus('❌ Failed to update note. Please try again.')
+      setTimeout(() => setStatus(''), 5000)
+    }
+  }
+
+  // Clear all user data
+  const handleClearAllData = async () => {
+    if (!unifiedUser) return
+    
+    if (!confirm('Are you sure you want to clear all your data? This cannot be undone.')) {
+      return
+    }
+    
+    try {
+      // Clear all user-specific data from localStorage
+      localStorage.removeItem(`media_${unifiedUser.id}`)
+      localStorage.removeItem(`stories_${unifiedUser.id}`)
+      localStorage.removeItem(`timeline_${unifiedUser.id}`)
+      localStorage.removeItem(`profile_${unifiedUser.id}`)
+      localStorage.removeItem(`spotify_${unifiedUser.id}`)
+      
+      // Reset state
+      setMediaItems([])
+      setStories([])
+      
+      setStatus('✅ All data cleared successfully!')
+      setTimeout(() => setStatus(''), 3000)
+    } catch (error) {
+      console.error('Data clearing error:', error)
+      setStatus('❌ Failed to clear data. Please try again.')
+      setTimeout(() => setStatus(''), 5000)
+    }
+  }
+
+  // Handle profile updates (bio and profile image)
+  const handleProfileUpdate = async (updates: { bio?: string; profile_image?: string }) => {
+    if (!unifiedUser) return
+    
+    try {
+      // Update user profile data
+      if (isSupabaseConfigured && supabaseAuth.updateProfile) {
+        await supabaseAuth.updateProfile(updates)
+      } else if (!isSupabaseConfigured && demoAuth.updateProfile) {
+        await demoAuth.updateProfile(updates)
+      }
+      
+      // Store in localStorage for immediate persistence
+      const userProfileKey = `profile_${unifiedUser.id}`
+      const existingProfile = JSON.parse(localStorage.getItem(userProfileKey) || '{}')
+      const updatedProfile = { ...existingProfile, ...updates }
+      localStorage.setItem(userProfileKey, JSON.stringify(updatedProfile))
+      
+      // Update local state immediately
+      setUserProfileData(updatedProfile)
+      
+      setStatus('✅ Profile updated successfully!')
+      setTimeout(() => setStatus(''), 3000)
+    } catch (error) {
+      console.error('Profile update error:', error)
+      setStatus('❌ Failed to update profile. Please try again.')
+      setTimeout(() => setStatus(''), 5000)
+    }
+  }
+
   // Show special routes
   if (isSpotifyCallback()) {
     return <SpotifyCallback isDarkMode={isDarkMode} />
@@ -383,6 +494,18 @@ export const AuthenticatedApp: React.FC = () => {
             <LiveUserIndicator currentUser={unifiedUser?.display_name || 'User'} isDarkMode={isDarkMode} />
             
             <button
+              onClick={handleClearAllData}
+              title="Clear all data"
+              className={`p-2 rounded-lg transition-colors duration-300 ${
+                isDarkMode 
+                  ? 'text-red-400 hover:bg-gray-700' 
+                  : 'text-red-600 hover:bg-gray-100'
+              }`}
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+            
+            <button
               onClick={toggleDarkMode}
               className={`p-2 rounded-lg transition-colors duration-300 ${
                 isDarkMode 
@@ -433,7 +556,13 @@ export const AuthenticatedApp: React.FC = () => {
         />
 
         {/* Profile Header */}
-        <ProfileHeader isDarkMode={isDarkMode} />
+        <ProfileHeader 
+          isDarkMode={isDarkMode} 
+          isOwner={true}
+          profileData={userProfileData}
+          onProfileUpdate={handleProfileUpdate}
+          onClearAllData={handleClearAllData}
+        />
 
         {/* Upload Section */}
         <UploadSection
@@ -461,9 +590,9 @@ export const AuthenticatedApp: React.FC = () => {
               setCurrentImageIndex(index)
               setModalOpen(true)
             }}
-            onDelete={() => {}} // TODO: Implement
-            onEditNote={() => {}} // TODO: Implement
-            isAdmin={false}
+            onDelete={handleDeleteMedia}
+            onEditNote={handleEditNote}
+            isAdmin={true}
             comments={comments}
             likes={likes}
             onAddComment={() => {}} // TODO: Implement
@@ -479,10 +608,10 @@ export const AuthenticatedApp: React.FC = () => {
         )}
 
         {activeTab === 'timeline' && (
-          <Timeline 
+          <UserSpecificTimeline 
             isDarkMode={isDarkMode} 
             userName={unifiedUser?.display_name || 'User'}
-            isAdmin={false}
+            isAdmin={true}
           />
         )}
       </div>
@@ -526,6 +655,15 @@ export const AuthenticatedApp: React.FC = () => {
         onClose={() => setShowStoryUpload(false)}
         onUpload={handleStoryUpload}
         isDarkMode={isDarkMode}
+      />
+
+      {/* User Gallery Admin Panel */}
+      <UserGalleryAdmin
+        isDarkMode={isDarkMode}
+        isAdmin={isAdminMode}
+        onToggleAdmin={setIsAdminMode}
+        mediaItems={mediaItems}
+        onClearAllData={handleClearAllData}
       />
     </div>
   )

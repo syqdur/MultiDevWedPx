@@ -1,0 +1,71 @@
+📁 Projektstruktur:
+Ich arbeite an einer Hochzeit-Web-App auf Basis von React + TypeScript + Firebase. Die zentrale Projektstruktur (vereinfacht) findest du im Verzeichnis `/src/components/`, z. B.:
+
+- ProfileHeader.tsx (zeigt aktuell ein fixes Profilbild und Bio-Text für kristinundmauro.de)
+- UserManagementModal.tsx (Verwaltung von Usern, Login, evtl. Admin)
+- SpotifyAdmin.tsx / Callback / UploadSection / Timeline.tsx etc. (user-spezifische Inhalte)
+- Firebase ist bereits implementiert (Firestore, Auth, Storage)
+- Nutzerinhalte sollen getrennt gespeichert sein
+
+🎯 Ziel:
+Ich möchte das Projekt so umbauen, dass neue User sich registrieren können und ein eigenes Profil anlegen mit:
+
+1. Eigenem Profilbild (upload + anzeigen + ersetzen möglich)
+2. Eigener Bio, editierbar direkt im Profil
+3. Zugriff nur auf eigene Daten (Galerie, Musik, Storys etc.)
+4. Die bestehende Hauptseite `kristinundmauro.de` soll **unverändert bleiben**.
+5. Der Umbau soll so erfolgen, dass bestehende Komponenten wie `ProfileHeader.tsx`, `UploadSection.tsx` etc. **wiederverwendet** werden, aber mit Userdaten aus Firestore
+
+🔧 Aufgaben für dich (AI):
+1. **Scanne den gesamten Code**, insbesondere `ProfileHeader.tsx` und `UserManagementModal.tsx`
+2. **Ergänze Firestore-Datenstruktur**:
+
+```ts
+users: {
+  <uid>: {
+    profileImageUrl: string,
+    bio: string,
+    createdAt: Timestamp,
+    ...weitere Daten wie uploads, storyRefs etc.
+  }
+}
+Baue ProfileHeader.tsx um, sodass:
+
+Profilbild dynamisch geladen wird (users/${uid}/profileImageUrl)
+
+Bio aus Firestore geladen und durch den Besitzer bearbeitet werden kann
+
+Nur eingeloggter User darf das eigene Profil bearbeiten (Nutzerrechte beachten)
+
+Implementiere handleImageUpload für Firebase Storage
+
+Implementiere handleBioUpdate für Firestore
+
+Stelle sicher, dass Inhalte wie Timeline, Uploads etc. nur vom jeweiligen Nutzer verwaltet werden können
+
+Original-Inhalte von kristinundmauro.de sollen nicht verändert werden
+
+🛠️ Bonus:
+Falls hilfreich, extrahiere den Profilbereich in eine UserProfilePage.tsx und nutze dort ProfileHeader und andere Inhalte modular.
+
+✨ Ziel: Jeder Userin erhält eine personalisierte Hochzeitsseite, die dieselbe Struktur hat wie das Original, aber mit eigenen Daten funktioniert.
+
+Bitte alle Änderungen gut kommentieren und modular umsetzen.
+
+yaml
+Kopieren
+Bearbeiten
+
+---
+
+## ✅ Als Aufgabenliste (TODO für dich oder die KI)
+
+```ts
+// TODO 1: Firestore-Datenstruktur für Nutzer erstellen (Collection "users")
+// TODO 2: Profilbild aus Firestore anzeigen und ersetzen (Firebase Storage)
+// TODO 3: Bio aus Firestore anzeigen und editierbar machen
+// TODO 4: `ProfileHeader.tsx` refaktorisieren: dynamisch statt statisch
+// TODO 5: Zugriffskontrolle einbauen (nur eigene Inhalte anzeigen & bearbeiten)
+// TODO 6: User-spezifische Komponenten ausbauen: UploadSection, Timeline, Stories
+// TODO 7: Route /user/:username oder /profile für individuelles User-Profil
+// TODO 8: Sicherstellen, dass bestehendes Hochzeitspaar-Profil unberührt bleibt
