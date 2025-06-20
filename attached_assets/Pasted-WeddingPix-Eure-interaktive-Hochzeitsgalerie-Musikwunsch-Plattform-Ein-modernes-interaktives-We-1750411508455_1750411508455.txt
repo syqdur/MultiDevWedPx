@@ -1,0 +1,20 @@
+WeddingPix: Eure interaktive Hochzeitsgalerie & Musikwunsch-Plattform
+Ein modernes, interaktives Web-Erlebnis für euren besonderen Tag.
+
+✨ Über WeddingPix
+WeddingPix ist eine innovative Webanwendung, die speziell dafür entwickelt wurde, die schönsten Momente eurer Hochzeit festzuhalten und zu teilen. Gäste können Fotos und Videos im Instagram-Stil hochladen, persönliche Notizen hinterlassen, Musikwünsche über Spotify einreichen und die Liebesgeschichte des Paares in einer interaktiven Timeline verfolgen. Mit einem intuitiven Admin-Panel behaltet ihr stets die volle Kontrolle über eure Inhalte.
+
+🚀 Features auf einen Blick
+📸 Instagram-Style Galerie: Eine wunderschöne, mobile-first Galerie, in der Gäste ihre Fotos und Videos teilen, liken und kommentieren können.
+Stell dir hier einen Screenshot der Galerie vor, mit mehreren Bildern und Kommentaren.
+⚡ Stories (24h): Teilt spontane Momente, die nach 24 Stunden automatisch verschwinden – perfekt für Live-Eindrücke vom Fest!
+Stell dir hier einen Screenshot der Stories-Leiste und eines Story-Viewers vor.
+🎵 Musikwünsche via Spotify: Gäste können Songs direkt aus Spotify suchen und zu eurer Hochzeits-Playlist hinzufügen. Mit optimistischen Updates für sofortiges Feedback!
+Stell dir hier einen Screenshot der Musikwunsch-Seite mit Suchergebnissen und der Playlist vor.
+💕 Interaktive Timeline: Eine chronologische Darstellung eurer Liebesgeschichte mit wichtigen Meilensteinen, Fotos und Videos.
+Stell dir hier einen Screenshot der Timeline mit verschiedenen Events und Medien vor.
+🔒 Umfassendes Admin-Panel: Volle Kontrolle über die Website – Medien verwalten, Benutzer überwachen, Website-Status ändern (Under Construction / Live), und Spotify-Integration konfigurieren.
+Stell dir hier einen Screenshot des Admin-Panels mit den verschiedenen Optionen vor.
+🌙 Dark Mode: Ein elegantes Design, das sich an die Vorlieben der Nutzer anpasst.
+👥 Live-Benutzeranzeige: Seht, wie viele Gäste gerade online sind und aktiv teilnehmen.
+📱 Responsives Design: Optimiert für alle Geräte – vom Smartphone bis zum Desktop.

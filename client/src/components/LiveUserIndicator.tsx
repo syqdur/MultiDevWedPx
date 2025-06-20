@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Eye } from 'lucide-react';
-// Firebase Firestore removed - now using PostgreSQL database
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  deleteDoc, 
+  doc, 
+  setDoc, 
+  onSnapshot, 
+  limit 
+} from 'firebase/firestore';
+import { db, isFirebaseConfigured } from '../config/firebase';
 
 // Live User Types
 interface LiveUser {
@@ -29,6 +40,13 @@ export const LiveUserIndicator: React.FC<LiveUserIndicatorProps> = ({
   useEffect(() => {
     if (!currentUser) {
       console.log('❌ No current user, skipping live user tracking');
+      setHasError(true);
+      return;
+    }
+
+    if (!isFirebaseConfigured || !db) {
+      console.log('❌ Firebase not configured, skipping live user tracking');
+      setHasError(true);
       return;
     }
 

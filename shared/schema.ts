@@ -23,7 +23,7 @@ export const mediaItems = pgTable("media_items", {
   uploadedBy: text("uploaded_by").notNull(),
   uploadedAt: timestamp("uploaded_at").defaultNow(),
   deviceId: text("device_id").notNull(),
-  type: text("type").notNull(), // 'image', 'video', 'note'
+  type: text("type", { enum: ['image', 'video', 'note', 'audio'] }).notNull(),
   noteText: text("note_text"),
   isUnavailable: boolean("is_unavailable").default(false),
   userId: integer("user_id").references(() => users.id),

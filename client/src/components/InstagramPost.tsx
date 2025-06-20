@@ -240,7 +240,9 @@ export const InstagramPost: React.FC<InstagramPostProps> = ({
                 <div className={`mt-4 px-3 py-1 rounded-full text-xs transition-colors duration-300 ${
                   isDarkMode ? 'bg-orange-600 text-white' : 'bg-orange-100 text-orange-800'
                 }`}>
-                  {item.type === 'video' ? '🎥 Video' : '📷 Bild'}
+                  {item.type === 'image' ? '📷 Bild' : 
+                   item.type === 'audio' ? '🎵 Audio' : 
+                   item.type === 'note' ? '📝 Note' : '🎥 Video'}
                 </div>
               </div>
             ) : (

@@ -231,16 +231,20 @@ export const loadGallery = (callback: (items: MediaItem[]) => void): () => void 
       if (response.ok) {
         const items = await response.json();
         callback(items);
+      } else {
+        console.warn('Failed to load gallery:', response.status);
+        callback([]);
       }
     } catch (error) {
       console.error('Error loading gallery:', error);
+      callback([]);
     }
   };
 
   fetchMedia();
   
-  // Set up polling for real-time updates
-  const interval = setInterval(fetchMedia, 5000);
+  // Set up polling for real-time updates (reduced frequency)
+  const interval = setInterval(fetchMedia, 30000);
   
   return () => clearInterval(interval);
 };
@@ -253,14 +257,18 @@ export const loadComments = (callback: (comments: any[]) => void): () => void =>
       if (response.ok) {
         const comments = await response.json();
         callback(comments);
+      } else {
+        console.warn('Failed to load comments:', response.status);
+        callback([]);
       }
     } catch (error) {
       console.error('Error loading comments:', error);
+      callback([]);
     }
   };
 
   fetchComments();
-  const interval = setInterval(fetchComments, 5000);
+  const interval = setInterval(fetchComments, 30000);
   return () => clearInterval(interval);
 };
 
@@ -300,14 +308,18 @@ export const loadLikes = (callback: (likes: any[]) => void): () => void => {
       if (response.ok) {
         const likes = await response.json();
         callback(likes);
+      } else {
+        console.warn('Failed to load likes:', response.status);
+        callback([]);
       }
     } catch (error) {
       console.error('Error loading likes:', error);
+      callback([]);
     }
   };
 
   fetchLikes();
-  const interval = setInterval(fetchLikes, 5000);
+  const interval = setInterval(fetchLikes, 30000);
   return () => clearInterval(interval);
 };
 

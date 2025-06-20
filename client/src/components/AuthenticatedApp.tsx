@@ -84,7 +84,7 @@ export const AuthenticatedApp: React.FC = () => {
 
   // Load user's media from database on component mount
   useEffect(() => {
-    if (unifiedUser) {
+    if (unifiedUser?.id) {
       // Load media from database
       const unsubscribeMedia = mediaService.loadGallery(setMediaItems)
       
@@ -103,11 +103,11 @@ export const AuthenticatedApp: React.FC = () => {
         unsubscribeLikes()
       }
     }
-  }, [unifiedUser])
+  }, [unifiedUser?.id])
 
   // Update profile dark mode when toggled
   useEffect(() => {
-    if (unifiedUser && unifiedUser.dark_mode !== isDarkMode) {
+    if (unifiedUser?.id && unifiedUser.dark_mode !== isDarkMode) {
       updateProfile({ dark_mode: isDarkMode })
     }
   }, [isDarkMode, unifiedUser, updateProfile])

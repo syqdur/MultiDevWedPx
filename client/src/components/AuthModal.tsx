@@ -59,7 +59,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         const { error } = await signUp(email, password, displayName.trim())
         if (error) {
-          setError(error.message)
+          setError(typeof error === 'string' ? error : (error as any)?.message || 'Authentication error')
         } else {
           // Registration successful - show success message
           setError('')
@@ -69,7 +69,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       } else {
         const { error } = await signIn(email, password)
         if (error) {
-          setError(error.message)
+          setError(typeof error === 'string' ? error : (error as any)?.message || 'Authentication error')
         } else {
           setError('')
           onClose()

@@ -14,6 +14,7 @@ import {
   getPendingOperationsCount
 } from '../services/spotifyService';
 import { SpotifyTrack } from '../types';
+import { SpotifyApi } from '../types/spotify';
 
 interface MusicWishlistProps {
   isDarkMode: boolean;
@@ -197,7 +198,7 @@ export const MusicWishlist: React.FC<MusicWishlistProps> = ({ isDarkMode }) => {
       
     } catch (error) {
       console.error('Failed to add track:', error);
-      setError('Failed to add track to playlist: ' + (error.message || 'Unknown error'));
+      setError('Failed to add track to playlist: ' + ((error as any)?.message || 'Unknown error'));
       setSyncStatus('error');
       setTimeout(() => setSyncStatus('live'), 3000);
     } finally {
@@ -229,7 +230,7 @@ export const MusicWishlist: React.FC<MusicWishlistProps> = ({ isDarkMode }) => {
       
     } catch (error) {
       console.error('Failed to remove track:', error);
-      setError('Failed to remove track from playlist: ' + (error.message || 'Unknown error'));
+      setError('Failed to remove track from playlist: ' + ((error as any)?.message || 'Unknown error'));
       setSyncStatus('error');
       setTimeout(() => setSyncStatus('live'), 3000);
     } finally {
@@ -315,7 +316,7 @@ export const MusicWishlist: React.FC<MusicWishlistProps> = ({ isDarkMode }) => {
       
     } catch (error) {
       console.error('Failed to bulk delete tracks:', error);
-      setError('Failed to delete some tracks: ' + (error.message || 'Unknown error'));
+      setError('Failed to delete some tracks: ' + ((error as any)?.message || 'Unknown error'));
       setSyncStatus('error');
       setTimeout(() => setSyncStatus('live'), 3000);
     } finally {
@@ -351,7 +352,7 @@ export const MusicWishlist: React.FC<MusicWishlistProps> = ({ isDarkMode }) => {
       
     } catch (error) {
       console.error('Failed to refresh tracks:', error);
-      setError('Failed to refresh playlist tracks: ' + (error.message || 'Unknown error'));
+      setError('Failed to refresh playlist tracks: ' + ((error as any)?.message || 'Unknown error'));
       setSyncStatus('error');
       setTimeout(() => setSyncStatus('live'), 3000);
     } finally {
@@ -834,7 +835,7 @@ export const MusicWishlist: React.FC<MusicWishlistProps> = ({ isDarkMode }) => {
                           <p className={`text-xs truncate ${
                             isDarkMode ? 'text-gray-400' : 'text-gray-500'
                           }`}>
-                            {item.track.artists.map(a => a.name).join(', ')}
+                            {item.track.artists.map((a: any) => a.name).join(', ')}
                           </p>
                         </div>
                       </div>

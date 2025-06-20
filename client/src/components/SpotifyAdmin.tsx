@@ -9,6 +9,7 @@ import {
   getSelectedPlaylist,
   getCurrentUser
 } from '../services/spotifyService';
+import { SpotifyApi } from '../types/spotify';
 
 interface SpotifyAdminProps {
   isDarkMode: boolean;

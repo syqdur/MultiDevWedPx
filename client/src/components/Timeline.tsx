@@ -3,6 +3,18 @@ import { Heart, Calendar, MapPin, Camera, Plus, Edit3, Trash2, Save, X, Image, V
 import { useAuth } from '../contexts/AuthContext';
 import { useDemoAuth } from '../contexts/DemoAuthContext';
 import { isSupabaseConfigured } from '../config/supabase';
+import { 
+  collection, 
+  query, 
+  orderBy, 
+  onSnapshot, 
+  addDoc, 
+  updateDoc, 
+  doc,
+  deleteDoc 
+} from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage } from '../config/firebase';
 
 interface TimelineEvent {
   id: string;
@@ -189,7 +201,8 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
         console.log(`✅ Timeline file uploaded successfully: ${fileName}`);
       } catch (error) {
         console.error(`❌ Error uploading ${file.name}:`, error);
-        throw new Error(`Fehler beim Hochladen von ${file.name}: ${error.message || 'Unbekannter Fehler'}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Fehler beim Hochladen von ${file.name}: ${errorMessage}`);
       }
     }
     
@@ -311,7 +324,7 @@ export const Timeline: React.FC<TimelineProps> = ({ isDarkMode, userName, isAdmi
         console.log('🗑️ Deleting media files from storage...');
         const deletePromises = event.mediaFileNames.map(fileName => {
           const storageRef = ref(storage, `uploads/${fileName}`);
-          return deleteObject(storageRef).catch(error => {
+          return deleteObject(storageRef).catch((error: any) => {
             console.warn(`⚠️ Could not delete file ${fileName}:`, error);
           });
         });

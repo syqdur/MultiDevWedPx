@@ -27,6 +27,18 @@ import {
   Eye,
   ThumbsUp,
 } from "lucide-react"
+import { 
+  collection, 
+  addDoc, 
+  doc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  orderBy, 
+  getDocs, 
+  serverTimestamp 
+} from 'firebase/firestore'
+import { db } from '../config/firebase'
 
 // Firebase Firestore removed - now using PostgreSQL database
 
