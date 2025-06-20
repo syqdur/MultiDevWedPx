@@ -19,8 +19,9 @@ import { PostWeddingRecap } from './PostWeddingRecap'
 import { PublicRecapPage } from './PublicRecapPage'
 import { useDarkMode } from '../hooks/useDarkMode'
 import { Sun, Moon, User, LogOut, Settings } from 'lucide-react'
-import { MediaItem } from '../types'
+import { MediaItem, Comment, Like } from '../types'
 import { UserGalleryAdmin } from './UserGalleryAdmin'
+import * as mediaService from '../services/mediaService'
 
 // Convert Supabase media to MediaItem format
 const convertSupabaseToMediaItem = (media: any): MediaItem => ({
@@ -81,14 +82,26 @@ export const AuthenticatedApp: React.FC = () => {
     return window.location.pathname === '/admin/post-wedding-recap'
   }
 
-  // Load user's media and profile data from localStorage on component mount
+  // Load user's media from database on component mount
   useEffect(() => {
     if (unifiedUser) {
-      const userMedia = JSON.parse(localStorage.getItem(`media_${unifiedUser.id}`) || '[]')
-      setMediaItems(userMedia)
+      // Load media from database
+      const unsubscribeMedia = mediaService.loadGallery(setMediaItems)
+      
+      // Load comments from database
+      const unsubscribeComments = mediaService.loadComments(setComments)
+      
+      // Load likes from database
+      const unsubscribeLikes = mediaService.loadLikes(setLikes)
       
       const userProfile = JSON.parse(localStorage.getItem(`profile_${unifiedUser.id}`) || '{}')
       setUserProfileData(userProfile)
+
+      return () => {
+        unsubscribeMedia()
+        unsubscribeComments()
+        unsubscribeLikes()
+      }
     }
   }, [unifiedUser])
 
@@ -99,7 +112,7 @@ export const AuthenticatedApp: React.FC = () => {
     }
   }, [isDarkMode, unifiedUser, updateProfile])
 
-  // Client-side file upload with local storage
+  // Upload files using user-specific Firebase Storage
   const handleUpload = async (files: FileList) => {
     if (!unifiedUser) return
     
@@ -107,37 +120,18 @@ export const AuthenticatedApp: React.FC = () => {
     setStatus('⏳ Files being processed...')
     
     try {
-      const uploadPromises = Array.from(files).map(async (file) => {
-        return new Promise<any>((resolve) => {
-          const reader = new FileReader()
-          reader.onload = (e) => {
-            const fileName = `${Date.now()}_${file.name}`
-            const dataUrl = e.target?.result as string
-            
-            const newItem = {
-              id: fileName,
-              name: file.name,
-              url: dataUrl,
-              uploadedBy: unifiedUser.display_name,
-              uploadedAt: new Date().toISOString(),
-              deviceId: unifiedUser.id,
-              type: (file.type.startsWith('video/') ? 'video' : 'image') as 'video' | 'image'
-            }
-            
-            // Store in localStorage for persistence
-            const userMedia = JSON.parse(localStorage.getItem(`media_${unifiedUser.id}`) || '[]')
-            userMedia.unshift(newItem)
-            localStorage.setItem(`media_${unifiedUser.id}`, JSON.stringify(userMedia))
-            
-            resolve(newItem)
-          }
-          reader.readAsDataURL(file)
-        })
-      })
+      const uploadedItems = await mediaService.uploadFiles(
+        files,
+        unifiedUser.display_name,
+        'web-client',
+        unifiedUser.id,
+        (progress) => {
+          setStatus(`⏳ Uploading... ${Math.round(progress)}%`)
+        }
+      )
       
-      const newItems = await Promise.all(uploadPromises)
-      setMediaItems(prev => [...newItems, ...prev])
-      setStatus('✅ Files uploaded successfully!')
+      setMediaItems(prev => [...prev, ...uploadedItems])
+      setStatus(`✅ ${uploadedItems.length} file(s) uploaded successfully`)
       setTimeout(() => setStatus(''), 3000)
     } catch (error) {
       setStatus('❌ Upload failed. Please try again.')
@@ -155,32 +149,23 @@ export const AuthenticatedApp: React.FC = () => {
     setStatus('⏳ Video being processed...')
     
     try {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const fileName = `video_${Date.now()}.webm`
-        const dataUrl = e.target?.result as string
-        
-        const newItem = {
-          id: fileName,
-          name: fileName,
-          url: dataUrl,
-          uploadedBy: unifiedUser.display_name,
-          uploadedAt: new Date().toISOString(),
-          deviceId: unifiedUser.id,
-          type: 'video' as const
+      const uploadedVideo = await mediaService.uploadVideoBlob(
+        videoBlob,
+        unifiedUser.display_name,
+        'web-client',
+        unifiedUser.id,
+        (progress) => {
+          setStatus(`⏳ Uploading video... ${Math.round(progress)}%`)
         }
-        
-        // Store in localStorage for persistence
-        const userMedia = JSON.parse(localStorage.getItem(`media_${unifiedUser.id}`) || '[]')
-        userMedia.unshift(newItem)
-        localStorage.setItem(`media_${unifiedUser.id}`, JSON.stringify(userMedia))
-        
-        setMediaItems(prev => [newItem, ...prev])
+      )
+      
+      if (uploadedVideo) {
+        setMediaItems(prev => [uploadedVideo, ...prev])
         setStatus('✅ Video uploaded successfully!')
-        setTimeout(() => setStatus(''), 3000)
-        setIsUploading(false)
+      } else {
+        setStatus('❌ Video upload failed. Please try again.')
       }
-      reader.readAsDataURL(videoBlob)
+      setTimeout(() => setStatus(''), 3000)
     } catch (error) {
       setStatus('❌ Video upload failed. Please try again.')
       console.error('Video upload error:', error)
@@ -196,26 +181,18 @@ export const AuthenticatedApp: React.FC = () => {
     setStatus('⏳ Publishing note...')
     
     try {
-      const noteId = `note_${Date.now()}`
+      const newNote = await mediaService.addNote(
+        note,
+        unifiedUser.display_name,
+        'web-client'
+      )
       
-      const newNote = {
-        id: noteId,
-        name: 'Note',
-        url: '',
-        uploadedBy: unifiedUser.display_name,
-        uploadedAt: new Date().toISOString(),
-        deviceId: unifiedUser.id,
-        type: 'note' as const,
-        noteText: note
+      if (newNote) {
+        setMediaItems(prev => [newNote, ...prev])
+        setStatus('✅ Note published successfully!')
+      } else {
+        setStatus('❌ Failed to publish note. Please try again.')
       }
-      
-      // Store in localStorage for persistence
-      const userMedia = JSON.parse(localStorage.getItem(`media_${unifiedUser.id}`) || '[]')
-      userMedia.unshift(newNote)
-      localStorage.setItem(`media_${unifiedUser.id}`, JSON.stringify(userMedia))
-      
-      setMediaItems(prev => [newNote, ...prev])
-      setStatus('✅ Note published successfully!')
       setTimeout(() => setStatus(''), 3000)
     } catch (error) {
       setStatus('❌ Failed to publish note. Please try again.')
@@ -595,9 +572,19 @@ export const AuthenticatedApp: React.FC = () => {
             isAdmin={true}
             comments={comments}
             likes={likes}
-            onAddComment={() => {}} // TODO: Implement
-            onDeleteComment={() => {}} // TODO: Implement
-            onToggleLike={() => {}} // TODO: Implement
+            onAddComment={(mediaId: string, text: string) => {
+              if (unifiedUser) {
+                mediaService.addComment(mediaId, text, unifiedUser.display_name, 'web-client')
+              }
+            }}
+            onDeleteComment={(commentId: string) => {
+              mediaService.deleteComment(commentId)
+            }}
+            onToggleLike={(mediaId: string) => {
+              if (unifiedUser) {
+                mediaService.toggleLike(mediaId, unifiedUser.display_name, 'web-client')
+              }
+            }}
             userName={unifiedUser?.display_name || 'User'}
             isDarkMode={isDarkMode}
           />
@@ -630,9 +617,19 @@ export const AuthenticatedApp: React.FC = () => {
         )}
         comments={comments}
         likes={likes}
-        onAddComment={() => {}} // TODO: Implement
-        onDeleteComment={() => {}} // TODO: Implement
-        onToggleLike={() => {}} // TODO: Implement
+        onAddComment={(mediaId: string, text: string) => {
+          if (unifiedUser) {
+            mediaService.addComment(mediaId, text, unifiedUser.display_name, 'web-client')
+          }
+        }}
+        onDeleteComment={(commentId: string) => {
+          mediaService.deleteComment(commentId)
+        }}
+        onToggleLike={(mediaId: string) => {
+          if (unifiedUser) {
+            mediaService.toggleLike(mediaId, unifiedUser.display_name, 'web-client')
+          }
+        }}
         userName={unifiedUser?.display_name || 'User'}
         isAdmin={false}
         isDarkMode={isDarkMode}

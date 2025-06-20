@@ -5,7 +5,7 @@ export interface MediaItem {
   uploadedBy: string;
   uploadedAt: string;
   deviceId: string;
-  type: 'image' | 'video' | 'note';
+  type: 'image' | 'video' | 'audio' | 'note';
   noteText?: string;
   isUnavailable?: boolean;
 }

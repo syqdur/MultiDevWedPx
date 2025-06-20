@@ -1,10 +1,4 @@
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  onSnapshot 
-} from 'firebase/firestore';
-import { db } from '../config/firebase';
+// Firebase Firestore removed - now using PostgreSQL database
 
 export interface SiteStatus {
   isUnderConstruction: boolean;

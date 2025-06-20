@@ -28,19 +28,7 @@ import {
   ThumbsUp,
 } from "lucide-react"
 
-// Firebase Imports
-import { db } from "../config/firebase"
-import {
-  collection,
-  addDoc,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  doc,
-  query,
-  orderBy,
-  serverTimestamp,
-} from "firebase/firestore"
+// Firebase Firestore removed - now using PostgreSQL database
 
 import { MediaItem } from '../types';
 import { loadGallery } from '../services/firebaseService';

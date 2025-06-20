@@ -1,17 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Eye } from 'lucide-react';
-import { 
-  doc, 
-  setDoc, 
-  onSnapshot, 
-  collection,
-  query,
-  where,
-  limit,
-  deleteDoc,
-  getDocs
-} from 'firebase/firestore';
-import { db } from '../config/firebase';
+// Firebase Firestore removed - now using PostgreSQL database
 
 // Live User Types
 interface LiveUser {

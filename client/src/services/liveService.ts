@@ -1,17 +1,6 @@
-import { 
-  doc, 
-  onSnapshot, 
-  collection,
-  query,
-  where,
-  orderBy,
-  addDoc,
-  deleteDoc,
-  getDocs,
-  updateDoc
-} from 'firebase/firestore';
 import { ref, deleteObject, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../config/firebase';
+import { storage } from '../config/firebase';
+// Firebase Firestore removed - now using PostgreSQL database
 
 // Stories Types
 export interface Story {

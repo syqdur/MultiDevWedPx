@@ -1,5 +1,4 @@
-import { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
+// Firebase Firestore removed - now using PostgreSQL database
 import { SpotifyCredentials, SelectedPlaylist, SpotifyTrack } from '../types';
 import { generateCodeVerifier, generateCodeChallenge } from '../utils/pkce';
 

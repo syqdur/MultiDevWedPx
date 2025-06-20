@@ -1,14 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Users, Smartphone, Wifi, WifiOff, Clock, RefreshCw, XCircle, Eye } from 'lucide-react';
-import { 
-  collection, 
-  query, 
-  onSnapshot, 
-  orderBy,
-  where,
-  getDocs
-} from 'firebase/firestore';
-import { db } from '../config/firebase';
+// Firebase Firestore removed - now using PostgreSQL database
 
 interface UserManagementModalProps {
   isOpen: boolean;

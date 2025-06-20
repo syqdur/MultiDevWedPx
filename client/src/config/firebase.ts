@@ -1,18 +1,29 @@
 import { initializeApp } from 'firebase/app';
 import { getStorage } from 'firebase/storage';
-import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB5kbpgei7k133J-2qyQ4XWg_b1BNf5M0c",
-  authDomain: "weddingpix-744e5.firebaseapp.com",
-  projectId: "weddingpix-744e5",
-  storageBucket: "weddingpix-744e5.firebasestorage.app",
-  messagingSenderId: "490398482579",
-  appId: "1:490398482579:web:47e1b0bd6bb0a329944d66",
-  measurementId: "G-DM441C01L2"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-const app = initializeApp(firebaseConfig);
-export const storage = getStorage(app);
-export const db = getFirestore(app);
+// Check if Firebase is configured
+const isFirebaseConfigured = Object.values(firebaseConfig).every(value => value && value !== 'undefined');
+
+let app: any = null;
+let storage: any = null;
+let auth: any = null;
+
+if (isFirebaseConfigured) {
+  app = initializeApp(firebaseConfig);
+  storage = getStorage(app);
+  auth = getAuth(app);
+}
+
+export { storage, auth, isFirebaseConfigured };
 export default app;

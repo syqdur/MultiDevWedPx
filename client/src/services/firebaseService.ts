@@ -5,99 +5,174 @@ import {
   getDownloadURL, 
   deleteObject 
 } from 'firebase/storage';
-import { 
-  collection, 
-  addDoc, 
-  query, 
-  orderBy, 
-  onSnapshot, 
-  deleteDoc, 
-  doc, 
-  where,
-  getDocs,
-  updateDoc
-} from 'firebase/firestore';
-import { storage, db } from '../config/firebase';
+import { storage, isFirebaseConfigured } from '../config/firebase';
 import { MediaItem, Comment, Like } from '../types';
+
+// Helper function to get user-specific storage path
+const getUserStoragePath = (userUID: string, mediaType: 'images' | 'videos' | 'audio', fileName: string): string => {
+  return `galleries/${userUID}/${mediaType}/${fileName}`;
+};
+
+// Helper function to determine media type from file
+const getMediaType = (file: File | Blob, fileName?: string): 'images' | 'videos' | 'audio' => {
+  const fileType = file.type;
+  const name = fileName || (file as File).name || '';
+  
+  if (fileType.startsWith('video/') || name.includes('video')) {
+    return 'videos';
+  } else if (fileType.startsWith('audio/')) {
+    return 'audio';
+  } else {
+    return 'images';
+  }
+};
 
 export const uploadFiles = async (
   files: FileList, 
   userName: string, 
   deviceId: string,
+  userUID: string,
   onProgress: (progress: number) => void
-): Promise<void> => {
+): Promise<MediaItem[]> => {
+  if (!isFirebaseConfigured || !storage) {
+    throw new Error('Firebase Storage is not configured');
+  }
+
+  const uploadedItems: MediaItem[] = [];
   let uploaded = 0;
   
   for (const file of Array.from(files)) {
     const fileName = `${Date.now()}-${file.name}`;
-    const storageRef = ref(storage, `uploads/${fileName}`);
+    const mediaType = getMediaType(file);
+    const storagePath = getUserStoragePath(userUID, mediaType, fileName);
+    const storageRef = ref(storage, storagePath);
     
+    // Upload file to Firebase Storage
     await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
     
-    // Add metadata to Firestore
-    const isVideo = file.type.startsWith('video/');
-    await addDoc(collection(db, 'media'), {
+    // Create media item for database
+    const mediaItem: Partial<MediaItem> = {
       name: fileName,
+      url: downloadURL,
       uploadedBy: userName,
       deviceId: deviceId,
-      uploadedAt: new Date().toISOString(),
-      type: isVideo ? 'video' : 'image'
+      type: mediaType === 'videos' ? 'video' : mediaType === 'audio' ? 'audio' : 'image'
+    };
+    
+    // Save to PostgreSQL database via API
+    const response = await fetch('/api/media', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(mediaItem),
     });
+    
+    if (response.ok) {
+      const savedItem = await response.json();
+      uploadedItems.push(savedItem);
+    }
     
     uploaded++;
     onProgress((uploaded / files.length) * 100);
   }
+  
+  return uploadedItems;
 };
 
 export const uploadVideoBlob = async (
   videoBlob: Blob,
   userName: string,
   deviceId: string,
+  userUID: string,
   onProgress: (progress: number) => void
-): Promise<void> => {
+): Promise<MediaItem | null> => {
+  if (!isFirebaseConfigured || !storage) {
+    throw new Error('Firebase Storage is not configured');
+  }
+
   const fileName = `${Date.now()}-recorded-video.webm`;
-  const storageRef = ref(storage, `uploads/${fileName}`);
+  const storagePath = getUserStoragePath(userUID, 'videos', fileName);
+  const storageRef = ref(storage, storagePath);
   
   onProgress(50);
   
   await uploadBytes(storageRef, videoBlob);
+  const downloadURL = await getDownloadURL(storageRef);
   
-  // Add metadata to Firestore
-  await addDoc(collection(db, 'media'), {
+  // Create media item for database
+  const mediaItem: Partial<MediaItem> = {
     name: fileName,
+    url: downloadURL,
     uploadedBy: userName,
     deviceId: deviceId,
-    uploadedAt: new Date().toISOString(),
     type: 'video'
+  };
+  
+  // Save to PostgreSQL database via API
+  const response = await fetch('/api/media', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(mediaItem),
   });
   
   onProgress(100);
+  
+  if (response.ok) {
+    return await response.json();
+  }
+  
+  return null;
 };
 
 export const addNote = async (
   noteText: string,
   userName: string,
-  deviceId: string
-): Promise<void> => {
-  // Add note as a special media item
-  await addDoc(collection(db, 'media'), {
+  deviceId: string,
+  userUID: string
+): Promise<MediaItem | null> => {
+  // Create note media item for database
+  const mediaItem: Partial<MediaItem> = {
     name: `note-${Date.now()}`,
+    url: '', // Notes don't have URLs
     uploadedBy: userName,
     deviceId: deviceId,
-    uploadedAt: new Date().toISOString(),
     type: 'note',
     noteText: noteText
+  };
+  
+  // Save to PostgreSQL database via API
+  const response = await fetch('/api/media', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(mediaItem),
   });
+  
+  if (response.ok) {
+    return await response.json();
+  }
+  
+  return null;
 };
 
 export const editNote = async (
   noteId: string,
   newText: string
 ): Promise<void> => {
-  const noteRef = doc(db, 'media', noteId);
-  await updateDoc(noteRef, {
-    noteText: newText,
-    lastEdited: new Date().toISOString()
+  // Update note via API
+  await fetch(`/api/media/${noteId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      noteText: newText
+    }),
   });
 };
 
