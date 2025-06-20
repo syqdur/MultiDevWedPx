@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import { useDemoAuth } from '../contexts/DemoAuthContext'
+import { isSupabaseConfigured } from '../config/supabase'
 import { AuthModal } from './AuthModal'
 import { UploadSection } from './UploadSection'
 import { InstagramGallery } from './InstagramGallery'
@@ -22,17 +24,30 @@ import { MediaItem } from '../types'
 // Convert Supabase media to MediaItem format
 const convertSupabaseToMediaItem = (media: any): MediaItem => ({
   id: media.id,
+  name: media.file_name || 'untitled',
   url: media.url,
-  caption: media.caption || '',
-  type: media.media_type,
-  timestamp: media.created_at,
   uploadedBy: 'Current User', // Will be replaced with actual user name
+  uploadedAt: media.created_at,
   deviceId: 'supabase',
-  fileName: media.file_name
+  type: media.media_type,
+  noteText: media.caption || undefined
 })
 
 export const AuthenticatedApp: React.FC = () => {
-  const { user, loading, signOut, updateProfile } = useDemoAuth()
+  // Use Supabase auth if configured, otherwise fall back to demo auth
+  const supabaseAuth = useAuth()
+  const demoAuth = useDemoAuth()
+  
+  const auth = isSupabaseConfigured ? supabaseAuth : demoAuth
+  const { user, loading, signOut, updateProfile } = auth
+  
+  // Create unified user interface
+  const unifiedUser = user ? {
+    id: user.id,
+    display_name: 'display_name' in user ? user.display_name : user.email?.split('@')[0] || 'User',
+    email: user.email || '',
+    dark_mode: 'dark_mode' in user ? user.dark_mode : false
+  } : null
   const { isDarkMode, toggleDarkMode } = useDarkMode()
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([])
@@ -63,22 +78,59 @@ export const AuthenticatedApp: React.FC = () => {
     return window.location.pathname === '/admin/post-wedding-recap'
   }
 
+  // Load user's media from localStorage on component mount
+  useEffect(() => {
+    if (unifiedUser) {
+      const userMedia = JSON.parse(localStorage.getItem(`media_${unifiedUser.id}`) || '[]')
+      setMediaItems(userMedia)
+    }
+  }, [unifiedUser])
+
   // Update profile dark mode when toggled
   useEffect(() => {
-    if (user && user.dark_mode !== isDarkMode) {
+    if (unifiedUser && unifiedUser.dark_mode !== isDarkMode) {
       updateProfile({ dark_mode: isDarkMode })
     }
-  }, [isDarkMode, user, updateProfile])
+  }, [isDarkMode, unifiedUser, updateProfile])
 
-  // Mock handlers for Firebase functions until migration is complete
+  // Client-side file upload with local storage
   const handleUpload = async (files: FileList) => {
-    if (!user) return
+    if (!unifiedUser) return
     
     setIsUploading(true)
-    setStatus('⏳ Files being uploaded...')
+    setStatus('⏳ Files being processed...')
     
     try {
-      // TODO: Implement Supabase upload
+      const uploadPromises = Array.from(files).map(async (file) => {
+        return new Promise<any>((resolve) => {
+          const reader = new FileReader()
+          reader.onload = (e) => {
+            const fileName = `${Date.now()}_${file.name}`
+            const dataUrl = e.target?.result as string
+            
+            const newItem = {
+              id: fileName,
+              name: file.name,
+              url: dataUrl,
+              uploadedBy: unifiedUser.display_name,
+              uploadedAt: new Date().toISOString(),
+              deviceId: unifiedUser.id,
+              type: (file.type.startsWith('video/') ? 'video' : 'image') as 'video' | 'image'
+            }
+            
+            // Store in localStorage for persistence
+            const userMedia = JSON.parse(localStorage.getItem(`media_${unifiedUser.id}`) || '[]')
+            userMedia.unshift(newItem)
+            localStorage.setItem(`media_${unifiedUser.id}`, JSON.stringify(userMedia))
+            
+            resolve(newItem)
+          }
+          reader.readAsDataURL(file)
+        })
+      })
+      
+      const newItems = await Promise.all(uploadPromises)
+      setMediaItems(prev => [...newItems, ...prev])
       setStatus('✅ Files uploaded successfully!')
       setTimeout(() => setStatus(''), 3000)
     } catch (error) {
@@ -91,37 +143,77 @@ export const AuthenticatedApp: React.FC = () => {
   }
 
   const handleVideoUpload = async (videoBlob: Blob) => {
-    if (!user) return
+    if (!unifiedUser) return
     
     setIsUploading(true)
-    setStatus('⏳ Video being uploaded...')
+    setStatus('⏳ Video being processed...')
     
     try {
-      // TODO: Implement Supabase video upload
-      setStatus('✅ Video uploaded successfully!')
-      setTimeout(() => setStatus(''), 3000)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const fileName = `video_${Date.now()}.webm`
+        const dataUrl = e.target?.result as string
+        
+        const newItem = {
+          id: fileName,
+          name: fileName,
+          url: dataUrl,
+          uploadedBy: unifiedUser.display_name,
+          uploadedAt: new Date().toISOString(),
+          deviceId: unifiedUser.id,
+          type: 'video' as const
+        }
+        
+        // Store in localStorage for persistence
+        const userMedia = JSON.parse(localStorage.getItem(`media_${unifiedUser.id}`) || '[]')
+        userMedia.unshift(newItem)
+        localStorage.setItem(`media_${unifiedUser.id}`, JSON.stringify(userMedia))
+        
+        setMediaItems(prev => [newItem, ...prev])
+        setStatus('✅ Video uploaded successfully!')
+        setTimeout(() => setStatus(''), 3000)
+        setIsUploading(false)
+      }
+      reader.readAsDataURL(videoBlob)
     } catch (error) {
       setStatus('❌ Video upload failed. Please try again.')
       console.error('Video upload error:', error)
       setTimeout(() => setStatus(''), 5000)
-    } finally {
       setIsUploading(false)
     }
   }
 
   const handleNoteSubmit = async (note: string) => {
-    if (!user || !note.trim()) return
+    if (!unifiedUser || !note.trim()) return
     
     setIsUploading(true)
-    setStatus('⏳ Note being saved...')
+    setStatus('⏳ Publishing note...')
     
     try {
-      // TODO: Implement Supabase note creation
-      setStatus('✅ Note saved successfully!')
+      const noteId = `note_${Date.now()}`
+      
+      const newNote = {
+        id: noteId,
+        name: 'Note',
+        url: '',
+        uploadedBy: unifiedUser.display_name,
+        uploadedAt: new Date().toISOString(),
+        deviceId: unifiedUser.id,
+        type: 'note' as const,
+        noteText: note
+      }
+      
+      // Store in localStorage for persistence
+      const userMedia = JSON.parse(localStorage.getItem(`media_${unifiedUser.id}`) || '[]')
+      userMedia.unshift(newNote)
+      localStorage.setItem(`media_${unifiedUser.id}`, JSON.stringify(userMedia))
+      
+      setMediaItems(prev => [newNote, ...prev])
+      setStatus('✅ Note published successfully!')
       setTimeout(() => setStatus(''), 3000)
     } catch (error) {
-      setStatus('❌ Failed to save note. Please try again.')
-      console.error('Note error:', error)
+      setStatus('❌ Failed to publish note. Please try again.')
+      console.error('Note submission error:', error)
       setTimeout(() => setStatus(''), 5000)
     } finally {
       setIsUploading(false)
@@ -129,13 +221,36 @@ export const AuthenticatedApp: React.FC = () => {
   }
 
   const handleStoryUpload = async (file: File) => {
-    if (!user) return
+    if (!unifiedUser) return
 
     setIsUploading(true)
     setStatus('⏳ Story being uploaded...')
 
     try {
-      // TODO: Implement Supabase story upload
+      const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage')
+      const { addDoc, collection, serverTimestamp } = await import('firebase/firestore')
+      const { storage, db } = await import('../config/firebase')
+      
+      // Create unique filename for story
+      const fileName = `story_${Date.now()}_${file.name}`
+      const storageRef = ref(storage, `stories/${unifiedUser.id}/${fileName}`)
+      
+      // Upload story file
+      await uploadBytes(storageRef, file)
+      const downloadURL = await getDownloadURL(storageRef)
+      
+      // Save story metadata to Firestore
+      await addDoc(collection(db, 'stories'), {
+        url: downloadURL,
+        fileName: fileName,
+        mediaType: file.type.startsWith('video/') ? 'video' : 'image',
+        uploadedBy: unifiedUser.display_name,
+        uploadedAt: serverTimestamp(),
+        deviceId: unifiedUser.id,
+        userId: unifiedUser.id,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+      })
+      
       setStatus('✅ Story uploaded successfully!')
       setTimeout(() => setStatus(''), 3000)
     } catch (error) {
@@ -166,7 +281,7 @@ export const AuthenticatedApp: React.FC = () => {
       isDarkMode={isDarkMode} 
       mediaItems={mediaItems}
       isAdmin={true}
-      userName={user?.display_name || 'Admin'}
+      userName={unifiedUser?.display_name || 'Admin'}
     />
   }
 
@@ -254,7 +369,7 @@ export const AuthenticatedApp: React.FC = () => {
               <h1 className={`text-xl font-bold transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                {user?.display_name}'s Gallery
+                {unifiedUser?.display_name}'s Gallery
               </h1>
               <p className={`text-sm transition-colors duration-300 ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -265,7 +380,7 @@ export const AuthenticatedApp: React.FC = () => {
           </div>
           
           <div className="flex items-center space-x-2">
-            <LiveUserIndicator currentUser={user?.display_name || 'User'} isDarkMode={isDarkMode} />
+            <LiveUserIndicator currentUser={unifiedUser?.display_name || 'User'} isDarkMode={isDarkMode} />
             
             <button
               onClick={toggleDarkMode}
@@ -308,7 +423,7 @@ export const AuthenticatedApp: React.FC = () => {
         {/* Stories Bar */}
         <StoriesBar
           stories={stories}
-          currentUser={user?.display_name || 'User'}
+          currentUser={unifiedUser?.display_name || 'User'}
           onAddStory={() => setShowStoryUpload(true)}
           onViewStory={(index) => {
             setCurrentStoryIndex(index)
@@ -354,7 +469,7 @@ export const AuthenticatedApp: React.FC = () => {
             onAddComment={() => {}} // TODO: Implement
             onDeleteComment={() => {}} // TODO: Implement
             onToggleLike={() => {}} // TODO: Implement
-            userName={user?.display_name || 'User'}
+            userName={unifiedUser?.display_name || 'User'}
             isDarkMode={isDarkMode}
           />
         )}
@@ -366,7 +481,7 @@ export const AuthenticatedApp: React.FC = () => {
         {activeTab === 'timeline' && (
           <Timeline 
             isDarkMode={isDarkMode} 
-            userName={user?.display_name || 'User'}
+            userName={unifiedUser?.display_name || 'User'}
             isAdmin={false}
           />
         )}
@@ -389,7 +504,7 @@ export const AuthenticatedApp: React.FC = () => {
         onAddComment={() => {}} // TODO: Implement
         onDeleteComment={() => {}} // TODO: Implement
         onToggleLike={() => {}} // TODO: Implement
-        userName={user?.display_name || 'User'}
+        userName={unifiedUser?.display_name || 'User'}
         isAdmin={false}
         isDarkMode={isDarkMode}
       />
@@ -398,7 +513,7 @@ export const AuthenticatedApp: React.FC = () => {
         isOpen={showStoriesViewer}
         stories={stories}
         initialStoryIndex={currentStoryIndex}
-        currentUser={user?.display_name || 'User'}
+        currentUser={unifiedUser?.display_name || 'User'}
         onClose={() => setShowStoriesViewer(false)}
         onStoryViewed={() => {}} // TODO: Implement
         onDeleteStory={() => {}} // TODO: Implement

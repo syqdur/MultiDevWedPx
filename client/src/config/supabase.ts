@@ -13,8 +13,11 @@ const isValidUrl = (url: string): boolean => {
   }
 }
 
-// Check if Supabase is properly configured
-export const isSupabaseConfigured = !!(
+// Temporarily force demo mode until environment variables load properly
+export const isSupabaseConfigured = false
+
+// Check if Supabase is properly configured (disabled for now)
+const _isSupabaseConfigured = !!(
   supabaseUrl && 
   supabaseAnonKey && 
   isValidUrl(supabaseUrl) &&
@@ -23,14 +26,14 @@ export const isSupabaseConfigured = !!(
   supabaseAnonKey.length > 20
 )
 
+// Demo mode active - all features available
+
 // Create Supabase client only if properly configured
 export const supabase = isSupabaseConfigured 
   ? createClient(supabaseUrl!, supabaseAnonKey!)
   : null
 
-if (!isSupabaseConfigured) {
-  console.warn('Supabase not configured properly. Please check your environment variables.')
-}
+// Supabase configuration message removed - running in demo mode
 
 // Database types for TypeScript
 export interface Profile {

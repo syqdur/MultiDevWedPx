@@ -1,0 +1,78 @@
+🧠 Ziel
+Ich will mein bestehendes Projekt zu einer Multi-User-Webanwendung (SaaS) ausbauen, in der Nutzer:innen sich registrieren, einloggen und ihre eigene Event-/Profilseite mit Galerie, Bio, Musik, Storys etc. verwalten können – unabhängig voneinander.
+
+✅ Prompt für die Programmier-KI (Analyse-fokussiert)
+Du bist ein erfahrener Fullstack-Entwickler. Ich arbeite an einem bestehenden React/TypeScript-Projekt, das aktuell eine statische Event-Webseite (z. B. Hochzeitseinladung) darstellt.
+
+⚠️ Deine erste Aufgabe: Analysiere das komplette Projektverzeichnis (alle Dateien, insbesondere unter /src/components/) und prüfe den aktuellen Funktionsstand.
+
+❗Folgende Ziele sollen erreicht werden:
+Umbau zu einer Multi-User-fähigen Anwendung mit Registrierung, Login, Logout
+
+Jeder Nutzerin bekommt ein eigenes Profil mit:
+
+Profilbild
+
+Bio
+
+Timeline
+
+Galerie (Bilder/Videos)
+
+Musik-Wunschliste
+
+Spotify-Profil
+
+Story-Funktion (ähnlich Instagram)
+
+Die bestehenden Komponenten (wie Timeline.tsx, UploadSection.tsx, SpotifyAdmin.tsx etc.) sollen nicht für alle Nutzer gemeinsam, sondern individuell pro eingeloggtem Nutzer funktionieren.
+
+📂 Relevante Projektstruktur:
+Die UI-Komponenten befinden sich in /src/components/. Beispiele:
+
+AdminLoginModal.tsx, AdminPanel.tsx
+
+UserManagementModal.tsx
+
+Timeline.tsx, StoriesBar.tsx, UploadSection.tsx
+
+ProfileHeader.tsx, SpotifyAdmin.tsx, VideoRecorder.tsx
+
+🔐 Eine Admin-Login-Funktion ist vorhanden, aber es fehlt ein öffentliches Auth-System mit User-Zuweisung zu Inhalten.
+
+📦 Aktuell ist Firebase eingebunden (z. B. firebaseConfig.ts), kann aber bei Bedarf durch Supabase ersetzt oder erweitert werden.
+
+🧩 Deine Aufgaben:
+1. Analysiere das gesamte Projekt:
+
+Welche Komponenten sind bereits vorhanden?
+
+Welche Inhalte sind statisch?
+
+Welche Daten sind global oder hardcoded, statt userbasiert?
+
+Welche Architektur nutzt das Projekt bisher (z. B. Zustand, DB-Zugriffe, File-Struktur)?
+
+2. Zeige mir dann:
+
+Welche Dateien/Module angepasst oder ergänzt werden müssen
+
+Welche Art von Backend/Datenbankstruktur gebraucht wird
+
+Welche Sicherheitsaspekte für Multi-User wichtig sind
+
+Wie man z. B. einen UserContext aufbaut
+
+Wie ich bestehende Komponenten wie Timeline, UploadSection, MusicWishlist etc. umbauen muss, um user-spezifisch zu funktionieren
+
+3. Und schließlich:
+
+Erstelle ein Umbaukonzept mit klarer To-do-Liste in der Reihenfolge: Auth-System → UserContext → dynamische Komponenten
+
+Beginne nur mit Schritt 1 (Analyse), bevor du mir etwas umbaust
+
+🛠️ Ich bin bereit, dir weitere Dateien (Code oder Screenshots) hochzuladen, wenn du für die Analyse mehr brauchst. Gib mir einfach Bescheid!
+
+Supabase Project url: https://fgmwxrgmosxamjhjouhr.supabase.co
+
+Supabase API ANON/PUBLIC: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnbXd4cmdtb3N4YW1qaGpvdWhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzOTg1OTEsImV4cCI6MjA2NTk3NDU5MX0.GBhkkWC2GrujVGmtN9ZcDa6eJ12CyRhdQyGa__BCBxk

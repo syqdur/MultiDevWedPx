@@ -1,12 +1,13 @@
 import React from 'react';
+import { AuthProvider } from './contexts/AuthContext';
+import { DemoAuthProvider } from './contexts/DemoAuthContext';
 import { AuthenticatedApp } from './components/AuthenticatedApp';
-import { useDemoAuth } from './contexts/DemoAuthContext';
 import { SpotifyCallback } from './components/SpotifyCallback';
 import { PublicRecapPage } from './components/PublicRecapPage';
 import { useDarkMode } from './hooks/useDarkMode';
+import { isSupabaseConfigured } from './config/supabase';
 
 function App() {
-  const { user, loading } = useDemoAuth();
   const { isDarkMode } = useDarkMode();
   
   // Check if we're on special routes that don't require auth
@@ -28,8 +29,14 @@ function App() {
     return <PublicRecapPage isDarkMode={isDarkMode} />;
   }
 
-  // Use new authentication system
-  return <AuthenticatedApp />;
+  // Use Supabase auth if configured, otherwise fall back to demo auth
+  const AuthWrapper = isSupabaseConfigured ? AuthProvider : DemoAuthProvider;
+  
+  return (
+    <AuthWrapper>
+      <AuthenticatedApp />
+    </AuthWrapper>
+  );
 }
 
 export default App;

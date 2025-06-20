@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import { X, Mail, Lock, User, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { useDemoAuth } from '../contexts/DemoAuthContext'
+import { isSupabaseConfigured } from '../config/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
 interface AuthModalProps {
@@ -24,7 +26,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   
-  const { signIn, signUp } = useAuth()
+  // Use the appropriate auth context based on configuration
+  const supabaseAuth = useAuth()
+  const demoAuth = useDemoAuth()
+  const auth = isSupabaseConfigured ? supabaseAuth : demoAuth
+  const { signIn, signUp } = auth
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
