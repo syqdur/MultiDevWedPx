@@ -1,0 +1,46 @@
+Du bist ein erfahrener Fullstack-Entwickler. Ich arbeite an einem bestehenden React/TypeScript-Projekt, das aktuell eine statische Event-Webseite (z. B. Hochzeitseinladung) darstellt.
+
+⚠️ Deine erste Aufgabe: Analysiere das komplette Projektverzeichnis (alle Dateien, insbesondere unter /src/components/) und prüfe den aktuellen Funktionsstand.
+
+
+Erstelle ein Admin-Panel auf der Hauptseite der Web-App, das nur über den Login
+Benutzername: admin
+Passwort: Unhack85!$
+
+markdown
+Kopieren
+Bearbeiten
+erreichbar ist.
+
+### Anforderungen:
+1. **Sicherer Admin-Login:**
+   - Kein Firebase-Auth-Login, sondern ein einfacher Auth-Mechanismus für das Admin-Panel (z. B. über Umgebungsvariablen oder abgesicherten Server-Endpunkt).
+   - Nach erfolgreichem Login Weiterleitung zum Admin-Dashboard.
+
+2. **Admin-Dashboard:**
+   - Zeige eine Liste **aller registrierten User**.
+   - Für jeden User:
+     - UID
+     - Benutzername oder Name aus Profil (falls vorhanden)
+     - Individueller Link zur Galerie, z. B. `https://meine-domain.de/g/<uid>`
+     - Anzahl hochgeladener Medien
+     - Datum der Erstellung des Accounts
+     - Link zum direkten Öffnen der Galerie
+     - Button zum Öffnen der Firebase Storage-Ordnerstruktur dieses Users (optional)
+
+3. **Firebase-Anbindung:**
+   - Nutze Firestore, um User-Daten und Metadaten zu den Galerien auszulesen.
+   - Nutze Firebase Storage, um Medien dem jeweiligen User zuzuordnen (wie zuvor: `/galleries/<userUID>/`).
+
+4. **Security:**
+   - Stelle sicher, dass nur der Admin diese Seite sehen und nutzen kann.
+   - Kein Zugriff über Browser-Devtools oder Routen ohne Authentifizierung.
+
+5. **Story-Upload-Funktion debuggen:**
+   - Aktuell funktioniert der Upload von Stories nicht. Bitte scanne das Projekt und behebe die Ursache. Stelle sicher, dass:
+     - Die Datei korrekt gespeichert wird.
+     - Die URL nach Upload korrekt abgerufen wird.
+     - Die Vorschau richtig angezeigt wird.
+     - Die Storage-Pfade korrekt dem User zugeordnet sind.
+
+Behalte meine Firebase config bei!

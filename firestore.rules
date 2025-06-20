@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===== BENUTZER-ISOLIERTE SICHERHEITSREGELN =====
+    
+    // Regel 1: Benutzer können nur ihre eigenen Daten lesen/schreiben
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && 
+                        request.auth.uid == userId;
+    }
+    
+    // Regel 2: Globale Collections nur mit expliziter userId-Filterung
+    match /media/{mediaId} {
+      allow read, write: if request.auth != null && 
+                        resource.data.userId == request.auth.uid;
+    }
+    
+    match /comments/{commentId} {
+      allow read, write: if request.auth != null && 
+                        resource.data.userId == request.auth.uid;
+    }
+    
+    match /likes/{likeId} {
+      allow read, write: if request.auth != null && 
+                        resource.data.userId == request.auth.uid;
+    }
+    
+    match /stories/{storyId} {
+      allow read, write: if request.auth != null && 
+                        resource.data.userId == request.auth.uid;
+    }
+    
+    // Regel 3: Öffentliche Read-Only Collections (falls benötigt)
+    match /public_data/{document=**} {
+      allow read: if true;
+      allow write: if false; // Nur durch Admin-SDKs
+    }
+    
+    // Regel 4: Admin-Only Collections
+    match /admin/{document=**} {
+      allow read, write: if request.auth != null && 
+                        request.auth.token.admin == true;
+    }
+    
+    // Regel 5: Test-Collections (Development only)
+    match /test/{document=**} {
+      allow read, write: if true; // Nur in Development-Umgebung
+    }
+    
+    // Standard: Alles andere verweigern
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

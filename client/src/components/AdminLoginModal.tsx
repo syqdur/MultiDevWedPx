@@ -21,8 +21,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
 
   // Admin credentials
   const adminCredentials = {
-    "Ehepaar": "test",
-    "Mauro": "2407"
+    "admin": "Unhack85!$"
   };
 
   const handleSubmit = (e: React.FormEvent) => {

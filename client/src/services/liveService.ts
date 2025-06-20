@@ -80,8 +80,8 @@ export const addStory = async (
     // === STEP 4: UPLOAD TO STORAGE ===
     console.log(`📤 Step 4: Uploading to Firebase Storage...`);
     
-    // 🔧 FIX: Use 'uploads/' path instead of 'stories/' to match existing permissions
-    storageRef = ref(storage, `uploads/${fileName}`);
+    // 🔧 FIX: Use 'galleries/' path instead of 'stories/' to match existing permissions
+    storageRef = ref(storage, `galleries/${cleanUserName}/${fileName}`);
     
     try {
       console.log(`📤 Starting upload to: uploads/${fileName}`);

@@ -8,6 +8,11 @@ export interface MediaItem {
   type: 'image' | 'video' | 'audio' | 'note';
   noteText?: string;
   isUnavailable?: boolean;
+  // Security fields for user isolation
+  userId?: string;
+  storagePath?: string;
+  fileName?: string;
+  size?: number;
 }
 
 export interface Comment {

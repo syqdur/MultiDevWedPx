@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Lock, Unlock, Settings, Download, Globe, Users, ExternalLink, Image, Video, MessageSquare, Gift, Heart, Star, Eye, Code, Music, Sparkles } from 'lucide-react';
+import { Lock, Unlock, Settings, Download, Globe, Users, ExternalLink, Image, Video, MessageSquare, Gift, Heart, Star, Eye, Code, Music, Sparkles, Shield } from 'lucide-react';
 import { MediaItem } from '../types';
 import { downloadAllMedia } from '../services/downloadService';
 import { SiteStatus, updateSiteStatus } from '../services/siteStatusService';
 import { ShowcaseModal } from './ShowcaseModal';
 import { UserManagementModal } from './UserManagementModal';
 import { SpotifyAdmin } from './SpotifyAdmin';
+import { FirebaseUserManagement } from './FirebaseUserManagement';
+import { DataMigrationPanel } from './DataMigrationPanel';
 
 interface AdminPanelProps {
   isDarkMode: boolean;
@@ -29,6 +31,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [showShowcase, setShowShowcase] = useState(false);
   const [showUserManagement, setShowUserManagement] = useState(false);
   const [showSpotifyAdmin, setShowSpotifyAdmin] = useState(false);
+  const [showFirebaseUserManagement, setShowFirebaseUserManagement] = useState(false);
+  const [showDataMigration, setShowDataMigration] = useState(false);
 
   const handleAdminToggle = () => {
     onToggleAdmin(!isAdmin);
@@ -215,17 +219,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <Sparkles className="w-5 h-5" />
           </button>
 
-          {/* USER MANAGEMENT BUTTON */}
+          {/* FIREBASE USER MANAGEMENT BUTTON */}
           <button
-            onClick={() => setShowUserManagement(true)}
+            onClick={() => setShowFirebaseUserManagement(true)}
             className={`p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 ${
               isDarkMode
                 ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
                 : 'bg-cyan-500 hover:bg-cyan-600 text-white'
             }`}
-            title="👥 User Management - Alle Benutzer und deren Status anzeigen"
+            title="👥 Firebase Benutzer-Verwaltung - Alle registrierten Benutzer und deren Galerien"
           >
             <Users className="w-5 h-5" />
+          </button>
+
+          {/* SECURITY MIGRATION BUTTON - CRITICAL */}
+          <button
+            onClick={() => setShowDataMigration(true)}
+            className={`p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 border-2 ${
+              isDarkMode
+                ? 'bg-red-600 hover:bg-red-700 text-white border-red-400'
+                : 'bg-red-500 hover:bg-red-600 text-white border-red-300'
+            }`}
+            title="🔒 KRITISCH: Sicherheits-Migration - Datenisolation beheben"
+          >
+            <Shield className="w-5 h-5" />
           </button>
 
           {/* SPOTIFY ADMIN BUTTON */}
@@ -321,6 +338,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         onClose={() => setShowUserManagement(false)}
         isDarkMode={isDarkMode}
       />
+
+      {/* FIREBASE USER MANAGEMENT MODAL */}
+      {showFirebaseUserManagement && (
+        <FirebaseUserManagement 
+          isDarkMode={isDarkMode}
+          onClose={() => setShowFirebaseUserManagement(false)}
+        />
+      )}
+
+      {/* DATA MIGRATION PANEL */}
+      {showDataMigration && (
+        <DataMigrationPanel 
+          isDarkMode={isDarkMode}
+          onClose={() => setShowDataMigration(false)}
+        />
+      )}
 
       {/* SPOTIFY ADMIN MODAL */}
       {showSpotifyAdmin && (

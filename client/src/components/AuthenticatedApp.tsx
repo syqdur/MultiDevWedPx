@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { useDemoAuth } from '../contexts/DemoAuthContext'
 import { isSupabaseConfigured } from '../config/supabase'
 import { AuthModal } from './AuthModal'
+import { AdminLoginModal } from './AdminLoginModal'
+import { AdminPanel } from './AdminPanel'
 import { UploadSection } from './UploadSection'
 import { InstagramGallery } from './InstagramGallery'
 import { MediaModal } from './MediaModal'
@@ -18,7 +20,7 @@ import { UserSpecificTimeline } from './UserSpecificTimeline'
 import { PostWeddingRecap } from './PostWeddingRecap'
 import { PublicRecapPage } from './PublicRecapPage'
 import { useDarkMode } from '../hooks/useDarkMode'
-import { Sun, Moon, User, LogOut, Settings } from 'lucide-react'
+import { Sun, Moon, User, LogOut, Settings, Shield } from 'lucide-react'
 import { MediaItem, Comment, Like } from '../types'
 import { UserGalleryAdmin } from './UserGalleryAdmin'
 import * as mediaService from '../services/mediaService'
@@ -67,6 +69,8 @@ export const AuthenticatedApp: React.FC = () => {
   const [likes, setLikes] = useState<any[]>([])
   const [userProfileData, setUserProfileData] = useState<any>(null)
   const [isAdminMode, setIsAdminMode] = useState(false)
+  const [showAdminLoginModal, setShowAdminLoginModal] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   // Check if we're on special routes
   const isSpotifyCallback = () => {
@@ -82,26 +86,39 @@ export const AuthenticatedApp: React.FC = () => {
     return window.location.pathname === '/admin/post-wedding-recap'
   }
 
-  // Load user's media from database on component mount
+  // Load user's data with secure, user-isolated queries
   useEffect(() => {
     if (unifiedUser?.id) {
-      // Load media from database
-      const unsubscribeMedia = mediaService.loadGallery(setMediaItems)
+      console.log(`🔒 Loading secure data for user: ${unifiedUser.id}`)
       
-      // Load comments from database
-      const unsubscribeComments = mediaService.loadComments(setComments)
-      
-      // Load likes from database
-      const unsubscribeLikes = mediaService.loadLikes(setLikes)
+      // Import secure Firebase service
+      import('../services/secureFirebaseService').then(secureService => {
+        // Load user-specific media with isolation
+        const unsubscribeMedia = secureService.loadUserMedia(unifiedUser.id, setMediaItems)
+        
+        // Load user-specific comments with isolation
+        const unsubscribeComments = secureService.loadUserComments(unifiedUser.id, setComments)
+        
+        // Load user-specific likes with isolation
+        const unsubscribeLikes = secureService.loadUserLikes(unifiedUser.id, setLikes)
+        
+        // Load user-specific stories with isolation
+        const unsubscribeStories = secureService.loadUserStories(unifiedUser.id, setStories)
+        
+        // Store cleanup functions
+        const cleanup = () => {
+          unsubscribeMedia()
+          unsubscribeComments()
+          unsubscribeLikes()
+          unsubscribeStories()
+        }
+        
+        // Store cleanup function for component unmount
+        return cleanup
+      })
       
       const userProfile = JSON.parse(localStorage.getItem(`profile_${unifiedUser.id}`) || '{}')
       setUserProfileData(userProfile)
-
-      return () => {
-        unsubscribeMedia()
-        unsubscribeComments()
-        unsubscribeLikes()
-      }
     }
   }, [unifiedUser?.id])
 
@@ -112,7 +129,7 @@ export const AuthenticatedApp: React.FC = () => {
     }
   }, [isDarkMode, unifiedUser, updateProfile])
 
-  // Upload files using user-specific Firebase Storage
+  // Upload files using secure user-isolated Firebase Storage
   const handleUpload = async (files: FileList) => {
     if (!unifiedUser) return
     
@@ -120,22 +137,33 @@ export const AuthenticatedApp: React.FC = () => {
     setStatus('⏳ Files being processed...')
     
     try {
-      const uploadedItems = await mediaService.uploadFiles(
-        files,
-        unifiedUser.display_name,
-        'web-client',
-        unifiedUser.id,
-        (progress) => {
-          setStatus(`⏳ Uploading... ${Math.round(progress)}%`)
-        }
-      )
+      const { uploadUserMedia } = await import('../services/secureFirebaseService')
+      const uploadedItems: any[] = []
       
-      setMediaItems(prev => [...prev, ...uploadedItems])
+      let uploaded = 0
+      for (const file of Array.from(files)) {
+        setStatus(`⏳ Uploading... ${Math.round((uploaded / files.length) * 100)}%`)
+        
+        const mediaType = file.type.startsWith('image/') ? 'image' : 
+                         file.type.startsWith('video/') ? 'video' : 'audio'
+        
+        const uploadedItem = await uploadUserMedia(
+          unifiedUser.id,
+          file,
+          mediaType,
+          unifiedUser.display_name
+        )
+        
+        uploadedItems.push(uploadedItem)
+        uploaded++
+      }
+      
+      setMediaItems(prev => [...uploadedItems, ...prev])
       setStatus(`✅ ${uploadedItems.length} file(s) uploaded successfully`)
       setTimeout(() => setStatus(''), 3000)
-    } catch (error) {
-      setStatus('❌ Upload failed. Please try again.')
-      console.error('Upload error:', error)
+    } catch (error: any) {
+      setStatus(`❌ Upload failed: ${error.message}`)
+      console.error('Secure upload error:', error)
       setTimeout(() => setStatus(''), 5000)
     } finally {
       setIsUploading(false)
@@ -210,35 +238,22 @@ export const AuthenticatedApp: React.FC = () => {
     setStatus('⏳ Story being uploaded...')
 
     try {
-      const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage')
-      const { addDoc, collection, serverTimestamp } = await import('firebase/firestore')
-      const { storage, db } = await import('../config/firebase')
+      const { uploadUserStory } = await import('../services/secureFirebaseService')
       
-      // Create unique filename for story
-      const fileName = `story_${Date.now()}_${file.name}`
-      const storageRef = ref(storage, `stories/${unifiedUser.id}/${fileName}`)
+      const newStory = await uploadUserStory(
+        unifiedUser.id,
+        file,
+        unifiedUser.display_name
+      )
       
-      // Upload story file
-      await uploadBytes(storageRef, file)
-      const downloadURL = await getDownloadURL(storageRef)
-      
-      // Save story metadata to Firestore
-      await addDoc(collection(db, 'stories'), {
-        url: downloadURL,
-        fileName: fileName,
-        mediaType: file.type.startsWith('video/') ? 'video' : 'image',
-        uploadedBy: unifiedUser.display_name,
-        uploadedAt: serverTimestamp(),
-        deviceId: unifiedUser.id,
-        userId: unifiedUser.id,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-      })
-      
+      console.log(`🔒 Secure story uploaded successfully:`, newStory)
       setStatus('✅ Story uploaded successfully!')
       setTimeout(() => setStatus(''), 3000)
-    } catch (error) {
-      console.error('Story upload error:', error)
-      setStatus('❌ Story upload failed. Please try again.')
+    } catch (error: any) {
+      console.error('❌ Secure story upload error:', error)
+      
+      const errorMessage = error.message || 'Story upload failed. Please try again.'
+      setStatus(`❌ ${errorMessage}`)
       setTimeout(() => setStatus(''), 5000)
     } finally {
       setIsUploading(false)
@@ -250,25 +265,29 @@ export const AuthenticatedApp: React.FC = () => {
     setShowAuthModal(false)
   }
 
-  // Handle media deletion
+  // Handle secure media deletion with user isolation
   const handleDeleteMedia = async (item: MediaItem) => {
     if (!unifiedUser) return
     
+    setIsUploading(true)
+    setStatus('⏳ Deleting item...')
+    
     try {
-      // Remove from local storage
-      const userMedia = JSON.parse(localStorage.getItem(`media_${unifiedUser.id}`) || '[]')
-      const updatedMedia = userMedia.filter((media: MediaItem) => media.id !== item.id)
-      localStorage.setItem(`media_${unifiedUser.id}`, JSON.stringify(updatedMedia))
+      const { deleteUserMedia } = await import('../services/secureFirebaseService')
       
-      // Update state
+      await deleteUserMedia(unifiedUser.id, item)
+      
+      // Update state to remove deleted item
       setMediaItems(prev => prev.filter(media => media.id !== item.id))
       
-      setStatus('✅ Media deleted successfully!')
+      setStatus('✅ Item deleted successfully!')
       setTimeout(() => setStatus(''), 3000)
-    } catch (error) {
-      console.error('Media deletion error:', error)
-      setStatus('❌ Failed to delete media. Please try again.')
+    } catch (error: any) {
+      setStatus(`❌ Failed to delete: ${error.message}`)
+      console.error('Secure delete error:', error)
       setTimeout(() => setStatus(''), 5000)
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -322,6 +341,25 @@ export const AuthenticatedApp: React.FC = () => {
       console.error('Data clearing error:', error)
       setStatus('❌ Failed to clear data. Please try again.')
       setTimeout(() => setStatus(''), 5000)
+    }
+  }
+
+  // Admin login handler
+  const handleAdminLogin = (username: string) => {
+    if (username === 'admin') {
+      setIsAdmin(true)
+      setShowAdminLoginModal(false)
+      setStatus('✅ Admin mode activated!')
+      setTimeout(() => setStatus(''), 3000)
+    }
+  }
+
+  // Toggle admin mode
+  const handleToggleAdmin = (adminMode: boolean) => {
+    setIsAdmin(adminMode)
+    if (!adminMode) {
+      setStatus('Admin mode deactivated')
+      setTimeout(() => setStatus(''), 3000)
     }
   }
 
@@ -469,6 +507,18 @@ export const AuthenticatedApp: React.FC = () => {
           
           <div className="flex items-center space-x-2">
             <LiveUserIndicator currentUser={unifiedUser?.display_name || 'User'} isDarkMode={isDarkMode} />
+            
+            <button
+              onClick={() => setShowAdminLoginModal(true)}
+              title="Admin Login"
+              className={`p-2 rounded-lg transition-colors duration-300 ${
+                isDarkMode 
+                  ? 'text-blue-400 hover:bg-gray-700' 
+                  : 'text-blue-600 hover:bg-gray-100'
+              }`}
+            >
+              <Shield className="w-5 h-5" />
+            </button>
             
             <button
               onClick={handleClearAllData}
@@ -661,6 +711,22 @@ export const AuthenticatedApp: React.FC = () => {
         onToggleAdmin={setIsAdminMode}
         mediaItems={mediaItems}
         onClearAllData={handleClearAllData}
+      />
+
+      {/* Admin Login Modal */}
+      <AdminLoginModal
+        isOpen={showAdminLoginModal}
+        onClose={() => setShowAdminLoginModal(false)}
+        onLogin={handleAdminLogin}
+        isDarkMode={isDarkMode}
+      />
+
+      {/* Admin Panel */}
+      <AdminPanel
+        isDarkMode={isDarkMode}
+        isAdmin={isAdmin}
+        onToggleAdmin={handleToggleAdmin}
+        mediaItems={mediaItems}
       />
     </div>
   )
